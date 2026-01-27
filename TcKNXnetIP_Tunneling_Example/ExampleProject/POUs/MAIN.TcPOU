@@ -1,0 +1,120 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="MAIN" Id="{56d12e5a-ef66-4144-a4f7-933389cbb67c}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	fbKNXnetIP							: KNXnetIPTunnelingServer := (stInPhysicalAddress := (nArea := 1, nLine := 14, nDevice := 255));	
+	fbKNXnetIP2							: KNXnetIPTunnelingServer;	
+	stTunnelingServerPhysicalAddress	: ST_KNX_PhysicalAddress;
+	fbDPTInterpreter					: KNX_DatapointTypes_Interpreter;
+	fbDPTBuilder						: KNX_DatapointTypes_Builder;
+
+	aTest								: ARRAY[1..20] OF BOOL;
+	tnTimerNext							: TON;
+	nByteNext							: BYTE;
+	tnAutoConnect						: TON;
+	stB2								: ST_KNX_DPT_B2;
+	stGroupAddressLight					: ST_KNX_GroupAddress;
+	
+	fbLight1							: FB_KNXnetIP_Light := (ipInKnxTunneling := fbKNXnetIP, ipInKnxInterpreter := fbDPTInterpreter, ipInKnxBuilder := fbDPTBuilder, stInKnxGroupAddress := (nFirst := 0, nMiddle := 7, nLow := 1));
+	fbLight2							: FB_KNXnetIP_Light := (ipInKnxTunneling := fbKNXnetIP, ipInKnxInterpreter := fbDPTInterpreter, ipInKnxBuilder := fbDPTBuilder, stInKnxGroupAddress := (nFirst := 0, nMiddle := 7, nLow := 2));
+	fbLight3							: FB_KNXnetIP_Light := (ipInKnxTunneling := fbKNXnetIP, ipInKnxInterpreter := fbDPTInterpreter, ipInKnxBuilder := fbDPTBuilder, stInKnxGroupAddress := (nFirst := 0, nMiddle := 7, nLow := 3));
+	fbLight4							: FB_KNXnetIP_Light := (ipInKnxTunneling := fbKNXnetIP, ipInKnxInterpreter := fbDPTInterpreter, ipInKnxBuilder := fbDPTBuilder, stInKnxGroupAddress := (nFirst := 0, nMiddle := 7, nLow := 4));
+	fbButton1							: FB_KNXnetIP_Button := (ipInKnxTunneling := fbKNXnetIP, ipInKnxInterpreter := fbDPTInterpreter, ipInKnxBuilder := fbDPTBuilder, stInKnxGroupAddress := (nFirst := 1, nMiddle := 1, nLow := 1), bInToggle := TRUE);
+	fbButton2							: FB_KNXnetIP_Button := (ipInKnxTunneling := fbKNXnetIP, ipInKnxInterpreter := fbDPTInterpreter, ipInKnxBuilder := fbDPTBuilder, stInKnxGroupAddress := (nFirst := 1, nMiddle := 1, nLow := 2), bInToggle := FALSE);
+	fbButton3							: FB_KNXnetIP_Button := (ipInKnxTunneling := fbKNXnetIP, ipInKnxInterpreter := fbDPTInterpreter, ipInKnxBuilder := fbDPTBuilder, stInKnxGroupAddress := (nFirst := 1, nMiddle := 1, nLow := 3), bInToggle := FALSE);
+	fbButton4							: FB_KNXnetIP_Button := (ipInKnxTunneling := fbKNXnetIP, ipInKnxInterpreter := fbDPTInterpreter, ipInKnxBuilder := fbDPTBuilder, stInKnxGroupAddress := (nFirst := 1, nMiddle := 1, nLow := 4), bInToggle := FALSE);
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbKNXnetIP(	sInSrvNetId					:= '',
+			sInLocalHostIPv4Addr		:= '192.168.42.10',
+			nInLocalPort				:= 4020,
+			sInRemoteHostIPv4Addr		:= '192.168.42.20',
+			nInRemotePort				:= 3671);
+			
+fbKNXnetIP2(	sInSrvNetId					:= '',
+				sInLocalHostIPv4Addr		:= '192.168.42.10',
+				nInLocalPort				:= 4021,
+				sInRemoteHostIPv4Addr		:= '192.168.42.20',
+				nInRemotePort				:= 3671);
+			
+tnAutoConnect( IN := NOT fbKNXnetIP.P_G_IsConnected, PT := T#1S);
+IF aTest[1] OR tnAutoConnect.Q THEN
+	fbKNXnetIP.M_Connect();
+ELSIF aTest[2] THEN
+	fbKNXnetIP.M_Disconnect();
+END_IF
+
+aTest[3] := fbKNXnetIP.P_G_IsConnecting;
+aTest[4] := fbKNXnetIP.P_G_IsConnected;
+aTest[5] := fbKNXnetIP.P_G_IsDisconnecting;
+
+IF aTest[6] THEN
+	fbKNXnetIP2.M_Connect();
+ELSIF aTest[7] THEN
+	fbKNXnetIP2.M_Disconnect();
+END_IF
+
+aTest[8] := fbKNXnetIP2.P_G_IsConnecting;
+aTest[9] := fbKNXnetIP2.P_G_IsConnected;
+aTest[10] := fbKNXnetIP2.P_G_IsDisconnecting;
+
+aTest[11] 	:= fbDPTInterpreter.M_InterpretAsBool(fbKNXnetIP.P_G_GroupAddressMessages.aMessage[1,1,1]);
+stB2 		:= fbDPTInterpreter.M_InterpretAs2Bit(fbKNXnetIP.P_G_GroupAddressMessages.aMessage[1,1,1]);
+
+fbButton1();
+fbButton2();
+fbButton3();
+fbButton4();
+
+M_FlashLights(bExecute := fbButton1.bOutState, bLed1 => aTest[16], bLed2 => aTest[17], bLed3 => aTest[18], bLed4 => aTest[19]);
+
+fbLight1(bInOnOff := fbButton1.bOutState);
+fbLight2(bInOnOff := fbButton1.bOutState);
+fbLight3(bInOnOff := fbButton1.bOutState);
+fbLight4(bInOnOff := fbButton1.bOutState);
+
+
+IF aTest[12] THEN
+	stGroupAddressLight.nFirst := 0; stGroupAddressLight.nMiddle := 7; stGroupAddressLight.nLow := 1;
+	IF fbKNXnetIP.M_TransmitMessage(stGroupAddressLight, fbDPTBuilder.M_BuildBool(TRUE)) THEN
+		aTest[12] := FALSE;
+	END_IF
+END_IF
+IF aTest[13] THEN
+	stGroupAddressLight.nFirst := 0; stGroupAddressLight.nMiddle := 7; stGroupAddressLight.nLow := 1;
+	IF fbKNXnetIP.M_TransmitMessage(stGroupAddressLight, fbDPTBuilder.M_BuildBool(FALSE)) THEN
+		aTest[13] := FALSE;
+	END_IF
+END_IF]]></ST>
+    </Implementation>
+    <Method Name="M_FlashLights" Id="{6330a8f3-5341-4d4f-9a58-b7426a3d7788}">
+      <Declaration><![CDATA[METHOD PRIVATE M_FlashLights : BOOL
+VAR_INPUT
+	bExecute	: BOOL;
+END_VAR
+VAR_OUTPUT
+	bLed1		: BOOL;
+	bLed2		: BOOL;
+	bLed3		: BOOL;
+	bLed4		: BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bExecute THEN bLed1 := FALSE; bLed2 := FALSE; bLed3 := FALSE; bLed4 := FALSE; RETURN; END_IF
+IF (nByteNext AND 16#0F) = 0 THEN nByteNext := 1; END_IF
+tnTimerNext( IN := TRUE, PT := T#200MS);
+IF tnTimerNext.Q THEN
+	tnTimerNext(IN := FALSE);
+	nByteNext := SHL(nByteNext, 1);
+END_IF
+bLed1 	:= nByteNext.0;
+bLed2	:= nByteNext.1;
+bLed3	:= nByteNext.2;
+bLed4	:= nByteNext.3;]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

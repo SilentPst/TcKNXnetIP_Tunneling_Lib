@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="E_KNXnetIP_CONNECTION_TYPE" Id="{1385db49-97c0-4821-80cc-0ebb84e25157}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'to_string'}
+TYPE E_KNXnetIP_CONNECTION_TYPE :
+(
+	DEVICE_MGMT_CONNECTION		:= 16#03,			// Data connection used to configure a KNXnet/IP device.
+	TUNNEL_CONNECTION			:= 16#04,			// Data connection used to forward KNX telegrams between two KNXnet/IP devices.
+	REMLOG_CONNECTION			:= 16#06,			// Data connection used for configuration and data transfer with a remote logging server.
+	REMCONF_CONNECTION			:= 16#07,			// Data connection used for data transfer with a remote configuration server.
+	OBJSVR_CONNECTION			:= 16#08			// Data connection used for configuration and data transfer with an Object Server in a KNXnet/IP device. 
+) BYTE
+;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

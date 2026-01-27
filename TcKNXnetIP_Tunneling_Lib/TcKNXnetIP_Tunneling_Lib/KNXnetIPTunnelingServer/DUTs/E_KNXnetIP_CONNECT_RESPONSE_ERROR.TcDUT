@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="E_KNXnetIP_CONNECT_RESPONSE_ERROR" Id="{0f3d2f7a-0d63-460d-b6b6-2caae551c8ff}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'to_string'}
+TYPE E_KNXnetIP_CONNECT_RESPONSE_ERROR :
+(
+	E_NO_ERROR 						:= 16#00,		// The connection is established successfully.
+	E_CONNECTION_TYPE 				:= 16#22,		// The KNXnet/IP Server device does not support the requested connection type.
+	E_CONNECTION_OPTION 			:= 16#23,		// The KNXnet/IP Server device does not support one or more requested connection options.
+	E_NO_MORE_CONNECTIONS 			:= 16#24,		// The KNXnet/IP Server device cannot accept the new data connection because its maximum amount of concurrent connections is already used.
+	E_AUTHORISATION_ERROR 			:= 16#28,		// The Client is not authorised to establish the requested connection The Client is not authorised to use the requested IA in the Extended CRI.
+	E_NO_TUNNELING_ADDRESS 			:= 16#2D,		// The IA requested in the Extended CRI is not a Tunnelling IA.
+	E_CONNECTION_IN_USE 			:= 16#2E		// The IA requested for this connection is in use. 
+) BYTE
+;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

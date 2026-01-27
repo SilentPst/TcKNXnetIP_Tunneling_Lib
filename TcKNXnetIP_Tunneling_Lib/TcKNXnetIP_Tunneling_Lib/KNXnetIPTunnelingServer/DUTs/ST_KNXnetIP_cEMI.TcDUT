@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="ST_KNXnetIP_cEMI" Id="{96e5d363-adb7-484b-b873-d9c0cfd6acdf}">
+    <Declaration><![CDATA[TYPE ST_KNXnetIP_cEMI :
+STRUCT
+	nMessageCode				: BYTE;
+	nAdditionalInfoLength		: BYTE;
+	nAdditionalInfo				: ARRAY[0..20] OF BYTE;
+	nControlField1				: BYTE;
+	nControlField2				: BYTE;
+	nSourcePhysicalAddress		: WORD;
+	stSourcePhysicalAddress		: ST_KNX_PhysicalAddress;
+	nDestinationGroupAddress	: WORD;
+	stDestinationGroupAddress	: ST_KNX_GroupAddress;
+	LengthDataField				: BYTE;
+	Data						: ARRAY[1..255] OF BYTE;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

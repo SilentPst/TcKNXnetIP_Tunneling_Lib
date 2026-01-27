@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="E_KNXnetIP_ServiceTypes" Id="{0bd02cdd-29b4-4240-bc39-365917793720}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'to_string'}
+TYPE E_KNXnetIP_ServiceTypes :
+(
+	eL_DataReq		 	:= 16#11,
+	eL_DataCon			:= 16#2E,
+	eL_DataInd			:= 16#29
+)BYTE
+;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

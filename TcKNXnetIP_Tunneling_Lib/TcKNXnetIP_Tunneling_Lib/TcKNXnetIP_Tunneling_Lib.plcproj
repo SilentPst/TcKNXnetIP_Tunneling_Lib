@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <FileVersion>1.0.0.0</FileVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{580577a1-d317-4b44-8b2d-fea580a3d1a8}</ProjectGuid>
+    <SubObjectsSortedByName>true</SubObjectsSortedByName>
+    <DownloadApplicationInfo>true</DownloadApplicationInfo>
+    <WriteProductVersion>false</WriteProductVersion>
+    <GenerateTpy>false</GenerateTpy>
+    <Name>TcKNXnetIP_Tunneling_Lib</Name>
+    <ProgramVersion>3.1.4026.19</ProgramVersion>
+    <Application>{8a6aa856-be00-41ce-ac3c-17a2b6529ace}</Application>
+    <TypeSystem>{d5f8170d-e343-43f3-9acc-f43caa52c492}</TypeSystem>
+    <Implicit_Task_Info>{ad323f36-f317-4408-b3a4-8c9cbb734b7d}</Implicit_Task_Info>
+    <Implicit_KindOfTask>{bf92b6af-272d-4d75-94c4-5128abbb3aa3}</Implicit_KindOfTask>
+    <Implicit_Jitter_Distribution>{b1568fd3-82ca-437f-aeda-95cad9461ace}</Implicit_Jitter_Distribution>
+    <LibraryReferences>{b1a46f2d-2f37-46ba-a676-50a7eadc6920}</LibraryReferences>
+    <Company>Gauggel</Company>
+    <Released>true</Released>
+    <Title>TcKNXnetIP_Tunneling_Lib</Title>
+    <ProjectVersion>1.0.0</ProjectVersion>
+    <AllowChecksForLibrary>true</AllowChecksForLibrary>
+    <Author>Gauggel Alexander</Author>
+    <Description>Library for KNXnetIP Tunnelling connection (write/read group addresses)
+License:     MIT License
+Disclaimer:
+This software is provided "as is", without warranty of any kind, express or implied.
+The author shall not be held liable for any damages arising from the use of this software.</Description>
+    <LibraryCategories>
+      <LibraryCategory>
+        <Id>{d8196e25-2f77-42e2-a2f9-97faad59230c}</Id>
+        <Version>1.0.0.0</Version>
+        <ParentCategory>
+          <Id>{f85b699a-03a4-49e3-9943-d193548feecb}</Id>
+        </ParentCategory>
+        <DefaultName>KNXnetIP</DefaultName>
+      </LibraryCategory>
+      <LibraryCategory>
+        <Id>{f85b699a-03a4-49e3-9943-d193548feecb}</Id>
+        <Version>1.0.0.0</Version>
+        <DefaultName>Communication</DefaultName>
+      </LibraryCategory>
+    </LibraryCategories>
+    <SelectedLibraryCategories>
+      <Id>{d8196e25-2f77-42e2-a2f9-97faad59230c}</Id>
+    </SelectedLibraryCategories>
+    <DefaultNamespace>TcKNXnetIP_Tunneling_Lib</DefaultNamespace>
+    <POUsForPropertyAccessIncluded>true</POUsForPropertyAccessIncluded>
+    <GlobalVersionStructureIncluded>true</GlobalVersionStructureIncluded>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\E_KNXnetIP_COMMON_CONSTANTS.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\E_KNXnetIP_COMMON_ERROR.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\E_KNXnetIP_CONNECTIONSTATE_RESPONSE_ERROR.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\E_KNXnetIP_CONNECTION_TYPE.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\E_KNXnetIP_CONNECT_RESPONSE_ERROR.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\E_KNXnetIP_CORE.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\E_KNXnetIP_DEVICE_MANAGEMENT.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\E_KNXnetIP_ROUTING.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\E_KNXnetIP_ServiceTypes.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\E_KNXnetIP_TUNNELING.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\E_KNXnetIP_TUNNELING_CONNECT_ERROR.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\Interpreter\ST_KNX_DPT_B2.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\Interpreter\ST_KNX_DPT_ControlDimming.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\StateMachines\E_KNXnetIPStateConnection.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\StateMachines\E_KNXnetIPStateReceivedTelegrams.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\StateMachines\E_KNXnetIPStateRequest.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\StateMachines\E_KNXnetIPStateTransmitTelegrams.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\ST_KNXnetIP_cEMI.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\ST_KNXnetIP_CommonHeader.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\ST_KNXnetIP_ConnectionHeader.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\ST_KNXnetIP_ConnectionStateResponse.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\ST_KNXnetIP_ConnectResponse.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\ST_KNXnetIP_DisconnectRequest.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\ST_KNXnetIP_DisconnectResponse.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\ST_KNXnetIP_Message.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\ST_KNXnetIP_MessageOfAllGroupAddresses.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\ST_KNXnetIP_Message_Buffer.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\ST_KNX_GroupAddress.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\DUTs\ST_KNX_PhysicalAddress.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\ITFs\I_KNXnetIP_Tunneling.TcIO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\ITFs\I_KNX_DPT_Builder.TcIO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\ITFs\I_KNX_DPT_Interpreter.TcIO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\PARAMs\KNXnetIP_TIMEOUT_CONSTANS.TcGVL">
+      <SubType>Code</SubType>
+      <LinkAlways>true</LinkAlways>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\POUs\F_KNX_GROUPADDRESS_TO_WORD.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\POUs\F_KNX_PHYSICALADDRESS_TO_WORD.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\POUs\F_WORD_TO_KNX_GROUPADDRESS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\POUs\F_WORD_TO_KNX_PHYSICALADDRESS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\POUs\KNXnetIPTunnelingServer.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\POUs\KNXnetIP_Message_FiFoBuffer.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\POUs\KNX_DatapointTypes_Builder.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIPTunnelingServer\POUs\KNX_DatapointTypes_Interpreter.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIP_Devices\Button\FB_KNXnetIP_Button.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIP_Devices\FB_KNXnetIP_Device_Abstract.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KNXnetIP_Devices\Light\FB_KNXnetIP_Light.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Project Information\F_GetCompany.TcPOU">
+      <SubType>Code</SubType>
+      <SystemCall>true</SystemCall>
+    </Compile>
+    <Compile Include="Project Information\F_GetTitle.TcPOU">
+      <SubType>Code</SubType>
+      <SystemCall>true</SystemCall>
+    </Compile>
+    <Compile Include="Project Information\F_GetVersion.TcPOU">
+      <SubType>Code</SubType>
+      <SystemCall>true</SystemCall>
+    </Compile>
+    <Compile Include="Version\Global_Version.TcGVL">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="KNXnetIPTunnelingServer" />
+    <Folder Include="KNXnetIPTunnelingServer\DUTs" />
+    <Folder Include="KNXnetIPTunnelingServer\DUTs\Interpreter" />
+    <Folder Include="KNXnetIPTunnelingServer\DUTs\StateMachines" />
+    <Folder Include="KNXnetIPTunnelingServer\ITFs" />
+    <Folder Include="KNXnetIPTunnelingServer\PARAMs" />
+    <Folder Include="KNXnetIPTunnelingServer\POUs" />
+    <Folder Include="KNXnetIP_Devices" />
+    <Folder Include="KNXnetIP_Devices\Button" />
+    <Folder Include="KNXnetIP_Devices\Light" />
+    <Folder Include="Project Information" />
+    <Folder Include="Version" />
+  </ItemGroup>
+  <ItemGroup>
+    <PlaceholderReference Include="Tc2_Standard">
+      <DefaultResolution>Tc2_Standard, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_Standard</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc2_System">
+      <DefaultResolution>Tc2_System, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_System</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc2_TcpIp">
+      <DefaultResolution>Tc2_TcpIp, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_TcpIp</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc3_Module">
+      <DefaultResolution>Tc3_Module, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc3_Module</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+    </PlaceholderReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="TcKNXnetIP_Tunneling_Lib.tmc">
+      <SubType>Content</SubType>
+    </None>
+  </ItemGroup>
+  <ProjectExtensions>
+    <PlcProjectOptions>
+      <XmlArchive>
+        <Data>
+          <o xml:space="preserve" t="OptionKey">
+      <v n="Name">"&lt;ProjectRoot&gt;"</v>
+      <d n="SubKeys" t="Hashtable" ckt="String" cvt="OptionKey">
+        <v>{192FAD59-8248-4824-A8DE-9177C94C195A}</v>
+        <o>
+          <v n="Name">"{192FAD59-8248-4824-A8DE-9177C94C195A}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" />
+        </o>
+        <v>{29BD8D0C-3586-4548-BB48-497B9A01693F}</v>
+        <o>
+          <v n="Name">"{29BD8D0C-3586-4548-BB48-497B9A01693F}"</v>
+          <d n="SubKeys" t="Hashtable" ckt="String" cvt="OptionKey">
+            <v>NamingConventions</v>
+            <o>
+              <v n="Name">"NamingConventions"</v>
+              <d n="SubKeys" t="Hashtable" />
+              <d n="Values" t="Hashtable" />
+            </o>
+            <v>Rules</v>
+            <o>
+              <v n="Name">"Rules"</v>
+              <d n="SubKeys" t="Hashtable" />
+              <d n="Values" t="Hashtable" />
+            </o>
+          </d>
+          <d n="Values" t="Hashtable" />
+        </o>
+        <v>{40450F57-0AA3-4216-96F3-5444ECB29763}</v>
+        <o>
+          <v n="Name">"{40450F57-0AA3-4216-96F3-5444ECB29763}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" />
+        </o>
+        <v>{8A0FB252-96EB-4DCC-A5B4-B4804D05E2D6}</v>
+        <o>
+          <v n="Name">"{8A0FB252-96EB-4DCC-A5B4-B4804D05E2D6}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" ckt="String" cvt="Boolean">
+            <v>WriteLineIDs</v>
+            <v>False</v>
+          </d>
+        </o>
+        <v>{8F99A816-E488-41E4-9FA3-846536012284}</v>
+        <o>
+          <v n="Name">"{8F99A816-E488-41E4-9FA3-846536012284}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" ckt="String" cvt="String">
+            <v>DisabledWarningIds</v>
+            <v>228,410,5410</v>
+          </d>
+        </o>
+        <v>{F66C7017-BDD8-4114-926C-81D6D687E35F}</v>
+        <o>
+          <v n="Name">"{F66C7017-BDD8-4114-926C-81D6D687E35F}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" ckt="String" cvt="Boolean">
+            <v>CalcActiveTransOnly</v>
+            <v>True</v>
+          </d>
+        </o>
+      </d>
+      <d n="Values" t="Hashtable" />
+    </o>
+        </Data>
+        <TypeList>
+          <Type n="Boolean">System.Boolean</Type>
+          <Type n="Hashtable">System.Collections.Hashtable</Type>
+          <Type n="OptionKey">{54dd0eac-a6d8-46f2-8c27-2f43c7e49861}</Type>
+          <Type n="String">System.String</Type>
+        </TypeList>
+      </XmlArchive>
+    </PlcProjectOptions>
+  </ProjectExtensions>
+</Project>

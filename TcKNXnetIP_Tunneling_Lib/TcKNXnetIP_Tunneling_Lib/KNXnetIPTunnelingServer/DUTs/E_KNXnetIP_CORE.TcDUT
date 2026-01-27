@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="E_KNXnetIP_CORE" Id="{7641859b-8f89-4518-a72a-e121ad5767fb}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'to_string'}
+TYPE E_KNXnetIP_CORE :
+(
+	SEARCH_REQUEST 				:= 16#0201,		// Sent by KNXnet/IP Client to search available KNXnet/IP Servers
+	SEARCH_RESPONSE				:= 16#0202,		// Sent by KNXnet/IP Server when receiving a KNXnet/IP SEARCH_REQUEST
+	DESCRIPITON_REQUEST			:= 16#0203,		// Sent by KNXnet/IP Client to a KNXnet/IP Server to retrieve information about capabilities and supported services
+	DESCRIPTION_RESPONSE		:= 16#0204,		// Sent by KNXnet/IP Server in response to a DESCRIPTION_REQUEST to provide information about the server implementation
+	CONNECT_REQUEST				:= 16#0205,		// Sent by KNXnet/IP Client for establishing a communication channel to a KNXnet/IP Server.
+	CONNECT_RESPONSE			:= 16#0206,		// Sent by KNXnet/IP Server as answer to CONNECT_REQUEST telegram.
+	CONNECTIONSTATE_REQUEST		:= 16#0207,		// Sent by KNXnet/IP Client for requesting the connection state of an established connection to a KNXnet/IP Server.
+	CONNECTIONSTATE_RESPONSE	:= 16#0208,		// Sent by KNXnet/IP Server when receiving a CONNECTIONSTATE_REQUEST for an established connection.
+	DISCONNECT_REQUEST			:= 16#0209,		// Sent by KNXnet/IP device, typically the KNXnet/IP Client, to terminate an established connection.
+	DISCONNECT_RESPONSE			:= 16#020A,		// Sent by KNXnet/IP device, typically the KNXnet/IP Server, in response to a DISCONNECT_REQUEST.
+	SECURE_WRAPPER				:= 16#0950,		// Contains an encrypted frame plus data for ensuring data integrity and freshness.
+	SESSION_REQUEST				:= 16#0951,		// Used to initiate the secure connection setup handshake for a new secure communication session.
+	SESSION_RESPONSE			:= 16#0952,		// Sent in response to a received secure session request frame.
+	SESSION_AUTHENTICATE		:= 16#0953,		// Sent after the Diffie-Hellman handshake to authenticate the user against the server.
+	SESSION_STATUS				:= 16#0954,		// Sent in any stage of the secure session handshake to indicate an error condition or status information.
+	TIMER_NOTIFY				:= 16#0955		// Used to ensure synchronization of the multicast group member's timer values.
+) WORD 
+;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

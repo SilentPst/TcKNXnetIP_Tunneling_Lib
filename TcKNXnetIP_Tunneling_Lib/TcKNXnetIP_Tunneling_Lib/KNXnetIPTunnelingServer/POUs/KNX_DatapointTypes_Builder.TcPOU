@@ -1,0 +1,142 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="KNX_DatapointTypes_Builder" Id="{65407e83-d9b8-4473-aaed-28a76def7580}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+:Description: function block for sending regular DPT messages to KNX devices
+:Instructions for use: instantiate this function block to use the implemented interface I_KNX_DPT_Builder and its methods to build the KNX messages correctly
+*)
+FUNCTION_BLOCK KNX_DatapointTypes_Builder IMPLEMENTS I_KNX_DPT_Builder
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="M_Build2Bit" Id="{d2ad781f-a32c-48ab-9ccc-9112da92245c}">
+      <Declaration><![CDATA[METHOD M_Build2Bit : ST_KNXnetIP_Message
+VAR_INPUT
+	bInValueBit1	: BOOL;
+	bInValueBit2	: BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_Build2Bit.nByteLength := SIZEOF(BYTE);
+M_Build2Bit.aMessage[1].0 := bInValueBit1;
+M_Build2Bit.aMessage[1].1 := bInValueBit2;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_BuildBool" Id="{004b9732-fe8c-47e0-9a28-1f19ffc798d4}">
+      <Declaration><![CDATA[METHOD M_BuildBool : ST_KNXnetIP_Message
+VAR_INPUT
+	bInValue	: BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_BuildBool.nByteLength := SIZEOF(BOOL);
+M_BuildBool.aMessage[1] := BOOL_TO_BYTE(bInValue);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_BuildDimming" Id="{c102317b-94ea-420b-9a66-108dc753d8c7}">
+      <Declaration><![CDATA[METHOD M_BuildDimming : ST_KNXnetIP_Message
+VAR_INPUT
+	stInValue		: ST_KNX_DPT_ControlDimming;
+END_VAR
+VAR
+	nResult			: BYTE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_BuildDimming.nByteLength := SIZEOF(BYTE);
+nResult		:= stInValue.nStepCode;
+nResult.3 	:= stInValue.bControl;
+M_BuildDimming.aMessage[1] := nResult;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_BuildFloat16" Id="{7fc6c6d0-4a4e-4949-a1b4-cae7354ae91b}">
+      <Declaration><![CDATA[METHOD M_BuildFloat16 : ST_KNXnetIP_Message
+VAR_INPUT
+	fInValue	: REAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_BuildINT16" Id="{665b125b-14d4-4c4d-85fc-cef7579b9115}">
+      <Declaration><![CDATA[METHOD M_BuildINT16 : ST_KNXnetIP_Message
+VAR_INPUT
+	nInValue	: INT;
+END_VAR
+VAR
+	nWord		: WORD;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_BuildINT16.nByteLength := SIZEOF(WORD);
+nWord := INT_TO_WORD(nInValue);
+M_BuildINT16.aMessage[1] := WORD_TO_BYTE(SHR(nWord,8));
+M_BuildINT16.aMessage[2] := WORD_TO_BYTE(nWord);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_BuildINT32" Id="{a47fcdab-4c20-4d12-9882-7c218c8819e8}">
+      <Declaration><![CDATA[METHOD M_BuildINT32 : ST_KNXnetIP_Message
+VAR_INPUT
+	nInValue	: DINT;
+END_VAR
+VAR
+	nWord		: DWORD;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_BuildINT32.nByteLength := SIZEOF(DWORD);
+nWord := DINT_TO_DWORD(nInValue);
+M_BuildINT32.aMessage[1] := DWORD_TO_BYTE(SHR(nWord,8*3));
+M_BuildINT32.aMessage[2] := DWORD_TO_BYTE(SHR(nWord,8*2));
+M_BuildINT32.aMessage[3] := DWORD_TO_BYTE(SHR(nWord,8));
+M_BuildINT32.aMessage[4] := DWORD_TO_BYTE(nWord);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_BuildUINT16" Id="{de2685cb-52e0-4bc4-a06a-fc05d58820f7}">
+      <Declaration><![CDATA[METHOD M_BuildUINT16 : ST_KNXnetIP_Message
+VAR_INPUT
+	nInValue	: UINT;
+END_VAR
+VAR
+	nWord		: WORD;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_BuildUINT16.nByteLength := SIZEOF(WORD);
+nWord := UINT_TO_WORD(nInValue);
+M_BuildUINT16.aMessage[1] := WORD_TO_BYTE(SHR(nWord,8));
+M_BuildUINT16.aMessage[2] := WORD_TO_BYTE(nWord);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_BuildUINT32" Id="{dfb06bd3-dc42-414a-b893-3fcc89f6025e}">
+      <Declaration><![CDATA[METHOD M_BuildUINT32 : ST_KNXnetIP_Message
+VAR_INPUT
+	nInValue	: UDINT;
+END_VAR
+VAR
+	nWord		: DWORD;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_BuildUINT32.nByteLength := SIZEOF(DWORD);
+nWord := UDINT_TO_DWORD(nInValue);
+M_BuildUINT32.aMessage[1] := DWORD_TO_BYTE(SHR(nWord,8*3));
+M_BuildUINT32.aMessage[2] := DWORD_TO_BYTE(SHR(nWord,8*2));
+M_BuildUINT32.aMessage[3] := DWORD_TO_BYTE(SHR(nWord,8));
+M_BuildUINT32.aMessage[4] := DWORD_TO_BYTE(nWord);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_BuildUINT8" Id="{3fa96402-3329-45d7-9837-df705ac4dece}">
+      <Declaration><![CDATA[METHOD M_BuildUINT8 : ST_KNXnetIP_Message
+VAR_INPUT
+	nInValue		: BYTE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_BuildUINT8.nByteLength	:= SIZEOF(BYTE);
+M_BuildUINT8.aMessage[1] 	:= nInValue;]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

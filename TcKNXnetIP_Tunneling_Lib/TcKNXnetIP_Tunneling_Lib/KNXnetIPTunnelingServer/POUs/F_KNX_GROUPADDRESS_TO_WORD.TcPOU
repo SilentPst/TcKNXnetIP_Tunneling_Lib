@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="F_KNX_GROUPADDRESS_TO_WORD" Id="{da8c33d7-75d7-4152-8297-fd6b8103c141}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_KNX_GROUPADDRESS_TO_WORD : WORD
+VAR_INPUT
+	stInGroupAddress		: ST_KNX_GroupAddress;
+END_VAR
+VAR
+	nResult				: WORD;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[nResult		:= SHL(UINT_TO_WORD(stInGroupAddress.nFirst), 11);
+nResult		:= nResult OR SHL(UINT_TO_WORD(stInGroupAddress.nMiddle), 8);
+nResult 	:= nResult OR UINT_TO_WORD(stInGroupAddress.nLow);
+F_KNX_GROUPADDRESS_TO_WORD := nResult;]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

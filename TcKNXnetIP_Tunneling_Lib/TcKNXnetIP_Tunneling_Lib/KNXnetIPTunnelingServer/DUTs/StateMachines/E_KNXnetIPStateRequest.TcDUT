@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="E_KNXnetIPStateRequest" Id="{dcafb019-88ab-4aa1-93fc-b06d12764590}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE E_KNXnetIPStateRequest :
+(
+	eInit 									:= 0,
+	eWaitForNextRequest						:= 1
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

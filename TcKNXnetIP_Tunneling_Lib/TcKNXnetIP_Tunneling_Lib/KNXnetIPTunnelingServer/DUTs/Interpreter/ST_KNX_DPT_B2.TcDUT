@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="ST_KNX_DPT_B2" Id="{f7cc3e67-ca70-4c7b-9e0d-24f7eb1fb506}">
+    <Declaration><![CDATA[TYPE ST_KNX_DPT_B2 :
+STRUCT
+	bBit1			: BOOL;
+	bBit2			: BOOL;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="ST_KNXnetIP_CommonHeader" Id="{bed75fff-707e-49f6-ac0e-8d0050ddc958}">
+    <Declaration><![CDATA[TYPE ST_KNXnetIP_CommonHeader :
+STRUCT
+	nHeaderSize			: BYTE;
+	nProtocolVersion	: BYTE;
+	nServiceType		: WORD;
+	nTotalLength		: WORD;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

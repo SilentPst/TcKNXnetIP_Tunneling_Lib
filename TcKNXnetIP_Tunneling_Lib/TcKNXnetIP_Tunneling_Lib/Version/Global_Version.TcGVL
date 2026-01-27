@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <GVL Name="Global_Version" Id="{e9af10a8-ea36-4b18-9716-f63ab4170ec1}">
+    <Declaration><![CDATA[{attribute 'TcGenerated'}
+{attribute 'no-analysis'}
+{attribute 'linkalways'}
+// This function has been automatically generated from the project information.
+VAR_GLOBAL CONSTANT
+	{attribute 'const_non_replaced'}
+	stLibVersion_TcKNXnetIP_Tunneling_Lib : ST_LibVersion := (iMajor := 1, iMinor := 0, iBuild := 0, iRevision := 0, nFlags := 1, sVersion := '1.0.0');
+END_VAR
+]]></Declaration>
+  </GVL>
+</TcPlcObject>

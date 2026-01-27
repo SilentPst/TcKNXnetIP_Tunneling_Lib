@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="E_KNXnetIPStateConnection" Id="{0c338d07-baf4-46f9-aeec-47fe0dcdd36e}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE E_KNXnetIPStateConnection :
+(
+	eInit 									:= 0,
+	eDisconnected							:= 1,
+	eCreateUdpSocket						:= 2,
+	eSendConnectRequestToTunnelingServer	:= 3,
+	eWaitForConnectResponse					:= 4,
+	eConnected								:= 5,
+	eSendConnectionStateRequest				:= 6,
+	eWaitForConnectionStateResponse			:= 7,
+	eDisconnectValidConnection				:= 10,
+	eWaitForDisconnectResponse				:= 11,
+	eAckDisconnectReq						:= 98,
+	eCloseAllSockets						:= 99,
+	eError									:= 100
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

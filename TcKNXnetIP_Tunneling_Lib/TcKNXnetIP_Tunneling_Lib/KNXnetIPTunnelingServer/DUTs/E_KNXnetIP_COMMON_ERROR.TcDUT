@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="E_KNXnetIP_COMMON_ERROR" Id="{905fba6f-64c0-431f-80cd-72d9133128ce}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'to_string'}
+TYPE E_KNXnetIP_COMMON_ERROR :
+(
+	E_NO_ERROR 					:= 16#00,			// Operation successful
+	E_HOST_PROTOCOL_TYPE 		:= 16#01,			// The requested host protocol is not supported by the KNXnet/IP device.
+	E_VERSION_NOT_SUPPORTED		:= 16#02,			// The requested protocol version is not supported by the KNXnet/IP device.
+	E_SEQUENCE_NUMBER	 		:= 16#04,			// The received sequence number is out of order.
+	E_ERROR 					:= 16#0F			// Any further undefined, possibly implementation specific error has occurred.
+) BYTE 
+;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

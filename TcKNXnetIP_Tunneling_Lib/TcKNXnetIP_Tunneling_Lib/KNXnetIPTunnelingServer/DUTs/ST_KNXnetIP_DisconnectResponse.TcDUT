@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="ST_KNXnetIP_DisconnectResponse" Id="{c9a9419e-1ba0-4222-b0cc-44af442576eb}">
+    <Declaration><![CDATA[TYPE ST_KNXnetIP_DisconnectResponse EXTENDS ST_KNXnetIP_CommonHeader :
+STRUCT
+	nCommunicationChannelID		: BYTE;
+	nStatusCode					: E_KNXnetIP_CONNECT_RESPONSE_ERROR;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

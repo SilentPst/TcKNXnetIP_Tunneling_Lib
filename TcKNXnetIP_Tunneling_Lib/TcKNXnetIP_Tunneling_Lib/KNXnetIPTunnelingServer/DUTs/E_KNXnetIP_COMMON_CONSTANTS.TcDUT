@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="E_KNXnetIP_COMMON_CONSTANTS" Id="{4aa9745e-02bb-4522-8af5-28bf6f702eea}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'to_string'}
+TYPE E_KNXnetIP_COMMON_CONSTANTS :
+(
+	KNXNETIP_VERSION_10 := 16#10,			// Identifier for KNXnet/IP protocol version 1.0
+	HEADER_SIZE_10		:= 16#06			// constant size of KNXnet/IP header as defined in protocol version 1.0
+) BYTE
+;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

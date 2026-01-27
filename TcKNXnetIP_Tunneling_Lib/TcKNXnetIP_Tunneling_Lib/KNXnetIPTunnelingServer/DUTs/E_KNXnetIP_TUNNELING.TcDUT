@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="E_KNXnetIP_TUNNELING" Id="{2246421d-9e1a-4f3c-a89a-67134f385283}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'to_string'}
+TYPE E_KNXnetIP_TUNNELING :
+(
+	TUNNELING_REQUEST 	:= 16#0420,		// Used for sending and receiving single KNX telegrams between KNXnet/IP Client and - Server.
+	TUNNELING_ACK		:= 16#0421		// Sent by a KNXnet/IP device to confirm the reception of the TUNNELING_REQUEST.
+) WORD
+;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

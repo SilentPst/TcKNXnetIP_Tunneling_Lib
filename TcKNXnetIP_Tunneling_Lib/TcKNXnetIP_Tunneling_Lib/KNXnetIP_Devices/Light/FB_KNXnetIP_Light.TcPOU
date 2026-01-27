@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="FB_KNXnetIP_Light" Id="{a204e680-5b44-4f27-9639-62bc3f2d3b7f}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+:Description: device function block for a normal light, it will send the state as bool
+*)
+FUNCTION_BLOCK FB_KNXnetIP_Light EXTENDS FB_KNXnetIP_Device_Abstract
+VAR_INPUT
+	bInOnOff			: BOOL;		// light is ON (TRUE) or OFF (FALSE)
+END_VAR
+VAR_OUTPUT
+	bOutRunning			: BOOL;		// function block is working correctly
+END_VAR
+VAR
+	rtConnected			: R_TRIG;	// rising trigger of connected state
+END_VAR
+VAR PERSISTENT
+	bLastState			: BOOL;		// stored last state of input
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF ipInKnxTunneling = 0 OR ipInKnxBuilder = 0 OR NOT ipInKnxTunneling.P_G_IsConnected THEN
+	RETURN;
+END_IF
+bOutRunning := TRUE;
+rtConnected(CLK := ipInKnxTunneling.P_G_IsConnected);	// send message if connection is valid
+IF bInOnOff <> bLastState THEN //OR rtConnected.Q THEN
+	bLastState := bInOnOff;
+	ipInKnxTunneling.M_TransmitMessage(stInKnxGroupAddress, ipInKnxBuilder.M_BuildBool(bInOnOff));
+END_IF]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

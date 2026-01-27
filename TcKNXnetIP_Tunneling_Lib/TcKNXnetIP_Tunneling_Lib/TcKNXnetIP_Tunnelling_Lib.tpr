@@ -1,0 +1,11 @@
+<TcModuleRefactorInfos RefactorCnt="1">
+  <TcModuleRefactorInfo RefactorCnt="1" DateTime="2026-01-27T20:05:50">
+    <Renames>
+      <RenameTypeItem>
+        <Type>KNXnetIP_TIMEOUT_CONSTANS</Type>
+        <From>TUNNELLING_REQUEST_TIMEOUT</From>
+        <To>TUNNELING_REQUEST_TIMEOUT</To>
+      </RenameTypeItem>
+    </Renames>
+  </TcModuleRefactorInfo>
+</TcModuleRefactorInfos>

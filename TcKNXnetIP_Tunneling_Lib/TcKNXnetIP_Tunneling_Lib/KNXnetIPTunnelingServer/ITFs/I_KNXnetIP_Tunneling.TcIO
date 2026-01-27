@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <Itf Name="I_KNXnetIP_Tunneling" Id="{7e0c1b0d-31ce-46ec-a6c9-f92d2b789f54}">
+    <Declaration><![CDATA[INTERFACE I_KNXnetIP_Tunneling
+]]></Declaration>
+    <Method Name="M_TransmitMessage" Id="{575c4083-6e2e-419a-9562-d6a537c468a6}">
+      <Declaration><![CDATA[(* 
+	transmitting group address message to tunneling server
+*)
+METHOD M_TransmitMessage : BOOL
+VAR_INPUT
+	stInGroupAddress		: ST_KNX_GroupAddress;			// group address
+	stInMessage				: ST_KNXnetIP_Message;			// message to send
+END_VAR
+
+]]></Declaration>
+    </Method>
+    <Property Name="P_G_GroupAddressMessages" Id="{bf61216c-3e8c-4244-a608-97847b59d546}">
+      <Declaration><![CDATA[(*
+	return reference to the messages of all group addresses
+*)
+PROPERTY P_G_GroupAddressMessages : REFERENCE TO ST_KNXnetIP_MessageOfAllGroupAddresses]]></Declaration>
+      <Get Name="Get" Id="{693b172a-266c-4d0b-ae0c-ed2d00408582}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="P_G_IsConnected" Id="{5b83ab54-560c-4411-9c97-3f507a4372cb}">
+      <Declaration><![CDATA[(*
+	host has valid connection to tunneling server
+*)
+PROPERTY P_G_IsConnected : BOOL]]></Declaration>
+      <Get Name="Get" Id="{b9198a2d-c68c-45ec-b1d4-06f66a933947}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="P_G_PhysicalAddress" Id="{d2361636-3c5c-491c-a233-924a8758efb3}">
+      <Declaration><![CDATA[(*
+	physical address of host
+*)
+PROPERTY P_G_PhysicalAddress : REFERENCE TO ST_KNX_PhysicalAddress]]></Declaration>
+      <Get Name="Get" Id="{22916fce-c071-4446-8ae4-5482d558ece6}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+  </Itf>
+</TcPlcObject>

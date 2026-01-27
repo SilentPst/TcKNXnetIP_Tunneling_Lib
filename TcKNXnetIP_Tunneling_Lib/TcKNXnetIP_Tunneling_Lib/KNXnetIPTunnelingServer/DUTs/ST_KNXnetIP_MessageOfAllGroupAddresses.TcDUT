@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="ST_KNXnetIP_MessageOfAllGroupAddresses" Id="{2f68c5e4-4522-4881-ab06-1be81710f3d3}">
+    <Declaration><![CDATA[TYPE ST_KNXnetIP_MessageOfAllGroupAddresses :
+STRUCT
+	aMessage		: ARRAY[0..31, 0..7, 0..255] OF ARRAY[1..255] OF BYTE;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

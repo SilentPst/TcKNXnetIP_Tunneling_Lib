@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="E_KNXnetIP_TUNNELING_CONNECT_ERROR" Id="{6c2c3a8b-1fa9-458a-9034-cb8174aadca7}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'to_string'}
+TYPE E_KNXnetIP_TUNNELING_CONNECT_ERROR :
+(
+	E_NO_ERROR			:= 16#00,		// The message is received successfully.
+	E_TUNNELING_LAYER	:= 16#29		// The KNXnet/IP Server device does not support the requested KNXnet/IP Tunneling layer.
+) BYTE
+;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

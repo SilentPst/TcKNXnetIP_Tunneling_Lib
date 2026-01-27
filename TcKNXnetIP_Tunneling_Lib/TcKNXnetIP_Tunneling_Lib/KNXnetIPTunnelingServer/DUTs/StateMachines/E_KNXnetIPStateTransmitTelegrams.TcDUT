@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="E_KNXnetIPStateTransmitTelegrams" Id="{074a593f-b636-4d2b-98e6-b057d9d837dd}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE E_KNXnetIPStateTransmitTelegrams :
+(
+	eInit 									:= 0,
+	eWaitForNextTelegramToTransmit			:= 1,
+	eTransmit								:= 2,
+	eWaitTimeForNextTransmit				:= 3
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

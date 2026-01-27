@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="FB_KNXnetIP_Button" Id="{cbe37dd4-fa60-4e32-8278-5a11c941a5cd}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+:Description: device function block for a normal button, it will interpret the button state as bool
+*)
+FUNCTION_BLOCK FB_KNXnetIP_Button EXTENDS FB_KNXnetIP_Device_Abstract
+VAR_INPUT
+	bInToggle			: BOOL := FALSE;			// activate toggle with high rising edge
+	tInLongPressedTime	: TIME := T#0S;				// not used if not parameterized or Time = Os
+END_VAR
+VAR_OUTPUT
+	bOutState			: BOOL;						// state of output
+	bOutLongPressed		: BOOL;						// button long pressed
+	bOutRunning			: BOOL;						// function block is working correctly
+END_VAR                             				
+VAR
+	bBtnState			: BOOL;
+	rtBtnState			: R_TRIG;
+END_VAR
+VAR PERSISTENT                      				
+	bLastState			: BOOL;						// stored last state of input
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF ipInKnxTunneling = 0 OR ipInKnxInterpreter = 0 OR NOT ipInKnxTunneling.P_G_IsConnected THEN
+	bOutState := bLastState;
+	RETURN;
+END_IF
+bOutRunning := TRUE;
+bBtnState 	:= ipInKnxInterpreter.M_InterpretAsBool(ipInKnxTunneling.P_G_GroupAddressMessages.aMessage[stInKnxGroupAddress.nFirst, stInKnxGroupAddress.nMiddle, stInKnxGroupAddress.nLow]);
+IF NOT bInToggle THEN
+	bOutState := bBtnState;
+ELSE
+	rtBtnState(CLK := bBtnState);
+	IF rtBtnState.Q THEN
+		bOutState := NOT bOutState;
+	END_IF
+END_IF
+bLastState 		:= bOutState;
+bOutLongPressed	:= M_LongPressed();]]></ST>
+    </Implementation>
+    <Method Name="M_LongPressed" Id="{d45fdc85-2f6d-402c-bcdd-24f97e5cda39}">
+      <Declaration><![CDATA[METHOD PRIVATE M_LongPressed : BOOL
+VAR_INST
+	tnLongPressed		: TON;
+END_VAR
+VAR CONSTANT
+	ctLongPressed		: TIME := T#1S;				// long pressed time
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF tInLongPressedTime = T#0S THEN
+	tnLongPressed(IN := bBtnState, PT := ctLongPressed);
+ELSE	
+	tnLongPressed(IN := bBtnState, PT := tInLongPressedTime);
+END_IF
+M_LongPressed := tnLongPressed.Q;]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

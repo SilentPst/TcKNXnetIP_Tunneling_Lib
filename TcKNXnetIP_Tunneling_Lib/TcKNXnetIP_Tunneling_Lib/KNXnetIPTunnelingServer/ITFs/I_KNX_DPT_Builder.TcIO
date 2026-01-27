@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <Itf Name="I_KNX_DPT_Builder" Id="{89191b61-8d43-402f-9d1b-09c81023c95e}">
+    <Declaration><![CDATA[INTERFACE I_KNX_DPT_Builder
+]]></Declaration>
+    <Method Name="M_Build2Bit" Id="{58d0c399-3f3e-46e0-9ae9-6799f02126a3}">
+      <Declaration><![CDATA[METHOD M_Build2Bit : ST_KNXnetIP_Message
+VAR_INPUT
+	bInValueBit1	: BOOL;
+	bInValueBit2	: BOOL;
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="M_BuildBool" Id="{0922ef82-88ed-474b-8f87-16ed12793e72}">
+      <Declaration><![CDATA[METHOD M_BuildBool : ST_KNXnetIP_Message
+VAR_INPUT
+	bInValue	: BOOL;
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="M_BuildDimming" Id="{562fc559-dcee-4c20-92e7-4fcf0a6baab5}">
+      <Declaration><![CDATA[METHOD M_BuildDimming : ST_KNXnetIP_Message
+VAR_INPUT
+	stInValue		: ST_KNX_DPT_ControlDimming;
+END_VAR]]></Declaration>
+    </Method>
+    <Method Name="M_BuildFloat16" Id="{bd9a6b42-b055-48c3-b7cf-c655fc10307a}">
+      <Declaration><![CDATA[METHOD M_BuildFloat16 : ST_KNXnetIP_Message
+VAR_INPUT
+	fInValue	: REAL;
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="M_BuildINT16" Id="{5abe6aef-c362-4f97-85fc-8bc95317885a}">
+      <Declaration><![CDATA[METHOD M_BuildINT16 : ST_KNXnetIP_Message
+VAR_INPUT
+	nInValue	: INT;
+END_VAR]]></Declaration>
+    </Method>
+    <Method Name="M_BuildINT32" Id="{57a7c002-41f6-431c-b53e-4694613e1964}">
+      <Declaration><![CDATA[METHOD M_BuildINT32 : ST_KNXnetIP_Message
+VAR_INPUT
+	nInValue	: DINT;
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="M_BuildUINT16" Id="{6b667758-eb67-4d78-9ae0-cf9404c20a98}">
+      <Declaration><![CDATA[METHOD M_BuildUINT16 : ST_KNXnetIP_Message
+VAR_INPUT
+	nInValue	: UINT;
+END_VAR]]></Declaration>
+    </Method>
+    <Method Name="M_BuildUINT32" Id="{58e272c7-597b-406a-bab3-67ea380563b3}">
+      <Declaration><![CDATA[METHOD M_BuildUINT32 : ST_KNXnetIP_Message
+VAR_INPUT
+	nInValue	: UDINT;
+END_VAR]]></Declaration>
+    </Method>
+    <Method Name="M_BuildUINT8" Id="{6959b541-3cf0-4a4b-abc3-f16f9e56b27b}">
+      <Declaration><![CDATA[METHOD M_BuildUINT8 : ST_KNXnetIP_Message
+VAR_INPUT
+	nInValue		: BYTE;
+END_VAR
+]]></Declaration>
+    </Method>
+  </Itf>
+</TcPlcObject>

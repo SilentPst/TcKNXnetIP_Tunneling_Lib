@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="FB_KNXnetIP_Device_Abstract" Id="{4a1e7d36-21b7-422a-9a0b-9ddf9f19d91f}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK ABSTRACT FB_KNXnetIP_Device_Abstract
+VAR_INPUT
+	stInKnxGroupAddress		: ST_KNX_GroupAddress;
+	ipInKnxTunneling		: I_KNXnetIP_Tunneling;
+	ipInKnxInterpreter		: I_KNX_DPT_Interpreter;
+	ipInKnxBuilder			: I_KNX_DPT_Builder;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

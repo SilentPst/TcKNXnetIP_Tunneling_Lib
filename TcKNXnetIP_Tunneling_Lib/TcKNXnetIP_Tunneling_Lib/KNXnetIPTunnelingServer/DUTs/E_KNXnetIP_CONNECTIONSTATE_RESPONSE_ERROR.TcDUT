@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="E_KNXnetIP_CONNECTIONSTATE_RESPONSE_ERROR" Id="{923c044c-7998-4ca5-845d-85fc2c58028a}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'to_string'}
+TYPE E_KNXnetIP_CONNECTIONSTATE_RESPONSE_ERROR :
+(
+	E_NO_ERROR 					:= 16#00,		// The connection state is normal.
+	E_CONNECTION_ID 			:= 16#21,		// The KNXnet/IP Server device cannot find an active data connection with the specified ID.
+	E_DATA_CONNECTION 			:= 16#26,		// The KNXnet/IP Server device detects an error concerning the data connection with the specified ID.
+	E_KNX_CONNECTION 			:= 16#27		// The KNXnet/IP Server device detects an error concerning the KNX connection with the specified ID.
+) BYTE 
+;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

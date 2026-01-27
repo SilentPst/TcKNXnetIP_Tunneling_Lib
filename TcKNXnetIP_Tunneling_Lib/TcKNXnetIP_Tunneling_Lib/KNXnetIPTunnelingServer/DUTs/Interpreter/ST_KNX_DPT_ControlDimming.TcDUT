@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="ST_KNX_DPT_ControlDimming" Id="{248946cf-3c33-413d-b0a6-12314082c68a}">
+    <Declaration><![CDATA[TYPE ST_KNX_DPT_ControlDimming :
+STRUCT
+	bControl		: BOOL;		// 0 = Decrease, 1 = Increase
+	nStepCode		: BYTE;		// 001b..111b: Step number of intervals = 2^(stepcode-1); 000b: Break
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

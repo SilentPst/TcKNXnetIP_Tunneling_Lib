@@ -1,0 +1,1807 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="KNXnetIPTunnelingServer" Id="{84d2f952-1c2f-47a0-a284-b84af36424b7}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+:Description: This function block is the heart of the library. It will connecting to the tunnelling server and send/receive telegrams.
+:Instructions for use: For every tunneling server you have to declare this fb. It is possible to use more tunneling at the same time with different physical addresses (the tunneling server should have more than one available server).
+*)
+FUNCTION_BLOCK KNXnetIPTunnelingServer IMPLEMENTS I_KNXnetIP_Tunneling
+VAR_INPUT
+	stInPhysicalAddress					: ST_KNX_PhysicalAddress;						// physical address of local host, mostly needed to see in ETS the local host device
+	sInSrvNetId							: T_AmsNetID 	:= '';							// net-id of twincat system, if local than use empty string ''
+	sInLocalHostIPv4Addr				: T_IPv4Addr;									// ipv4 address of the local host
+	nInLocalPort						: UINT;											// port for communication on local host
+	                            		                            					
+	sInRemoteHostIPv4Addr				: T_IPv4Addr;									// ipv4 address of the remote host, which should be connected
+	nInRemotePort						: UINT;											// port for communication on remote host
+END_VAR             		                                        		
+VAR                             		                                        		
+	bInit								: BOOL := FALSE;	                    		
+                                		                                        		
+	bInitiateConnection					: BOOL;											// initiation of the connection
+	bInitiateDisconnection				: BOOL;											// initiation of disconnect the connection
+	                            		                                        		
+	// receive                  		                                        		
+	fbReceiveFiFoBuffer					: KNXnetIP_Message_FiFoBuffer;					// receive fifo buffer for KNXnetIP messages
+	                            	                                            		
+	// transmit                 	                                            		
+	fbTransmitFiFoBuffer				: KNXnetIP_Message_FiFoBuffer;					// transmit fifo buffer for KNXnetIP messages
+	fbTransmitFiFoBufferQuick			: KNXnetIP_Message_FiFoBuffer;					// transmit quick fifo buffer for KNXnetIP messages
+	                                                                            		
+	// important communication variables                                        	
+	nCommunicationChannelID				: BYTE;											// communication channel ID for further communications, is received from server
+	nPhysicalAddressTunneling			: WORD;											// physical address to comunicate over tunneling server, is received from server
+	
+	// backing
+	_bIsConnected						: BOOL;
+	_bIsConnecting						: BOOL;
+	_bIsDisconnecting					: BOOL;
+	_bDisconnectReceived				: BOOL;
+	_bTunnelReqReceived					: BOOL;
+	_bTunnellingAckReceived				: BOOL;
+	_bConnectionStateResponseReceived	: BOOL;
+	_bConnectResponseReceived			: BOOL;
+	_bDisconnectResponseReceived		: BOOL;
+	_bReconnect							: BOOL;
+	_bTransmitTimeout					: BOOL;
+	_nSequenceCounter					: BYTE := 255;
+	_nSequenceCounterTransmit			: BYTE := 0;
+	_stConnectedSocket					: T_HSOCKET;									// actually connected socket
+	_stPhysicalAddressTunneling			: ST_KNX_PhysicalAddress;						// physical Address for tunneling server, which is got from server at connect request
+	
+END_VAR
+VAR_STAT 
+	stGroupAddressMessages				: ST_KNXnetIP_MessageOfAllGroupAddresses;		// reference to all group addresses, for writing
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF bInit THEN
+	M_Init();
+END_IF
+
+M_ManagerTransmit();
+M_ManagerConnection();
+M_ManagerReceiving();
+M_ManagerConvertReceived();]]></ST>
+    </Implementation>
+    <Folder Name="Builder" Id="{5c135c9a-fc69-4107-87f7-7a1f1a6a6d19}" />
+    <Folder Name="Identify" Id="{a34fa56f-d3eb-4e08-8f4d-e7654f4caff7}" />
+    <Folder Name="Manager" Id="{16184670-0d7a-4cfd-9a63-b8fac54bb6bb}" />
+    <Folder Name="Parser" Id="{9ae0f66d-ed65-4e1c-b84a-d4d5655972bb}" />
+    <Method Name="M_AddHPAI" Id="{1cac38fb-e9c0-4b2a-8299-48d78fb6feb0}" FolderPath="Builder\">
+      <Declaration><![CDATA[METHOD PRIVATE M_AddHPAI : BOOL
+VAR_IN_OUT
+	stInMessage					: ST_KNXnetIP_Message;		// message to add the HPAI
+END_VAR
+VAR_INPUT	
+	nInStartByte				: UINT;						// starting byte, where the HPAI should be added
+	sInIPv4Addr					: T_IPv4Addr;				// ipv4 address of HPAI
+	nInPortNumber				: UINT;						// port number of HPAI
+END_VAR	
+VAR
+	aIPv4Address				: T_IPv4AddrArr;			// ipv4 address in bytes
+END_VAR
+VAR CONSTANT
+	cStructLengthHPAI			: BYTE := 16#08;			// structure length of HPAI are 8 octetts
+	cIPV4_UDP					: BYTE := 16#01;			// identifier for protocol version 4 address and port number for UDP communication
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// insert HPAI at start byte position
+stInMessage.aMessage[nInStartByte] 		:= cStructLengthHPAI;
+stInMessage.aMessage[nInStartByte+1] 	:= cIPV4_UDP;
+aIPv4Address							:= F_ScanIPv4AddrIds(sInIPv4Addr);
+stInMessage.aMessage[nInStartByte+2] 	:= aIPv4Address[0];
+stInMessage.aMessage[nInStartByte+3] 	:= aIPv4Address[1];
+stInMessage.aMessage[nInStartByte+4] 	:= aIPv4Address[2];
+stInMessage.aMessage[nInStartByte+5] 	:= aIPv4Address[3];
+stInMessage.aMessage[nInStartByte+6] 	:= M_GetHighByte(UINT_TO_WORD(nInPortNumber));
+stInMessage.aMessage[nInStartByte+7] 	:= M_GetLowByte(UINT_TO_WORD(nInPortNumber));
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_AreHostAndPortValid" Id="{a4aa9ae8-66ec-4522-b85f-6e0c518bf12d}">
+      <Declaration><![CDATA[METHOD PRIVATE M_AreHostAndPortValid : BOOL
+VAR_INPUT	
+	sHost						: T_IPv4Addr;						// host, which are the data was received
+	nPort						: UDINT;							// port, which are the data was received
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_AreHostAndPortValid := (sHost = sInRemoteHostIPv4Addr) AND (nPort = nInRemotePort);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_BuildDisconnectResponse" Id="{09975ea2-05ba-4f01-aafd-e84bb681ce19}" FolderPath="Builder\">
+      <Declaration><![CDATA[METHOD PRIVATE M_BuildDisconnectResponse : ST_KNXnetIP_Message
+VAR
+	stResult			: ST_KNXnetIP_Message;
+	aIPv4Address		: T_IPv4AddrArr;			// ipv4 address in bytes
+END_VAR
+VAR CONSTANT
+	cTotalLength		: WORD := 16#0008;			// total length ares 8 octetts
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// ------ KNXnet/IP header
+stResult.aMessage[1] 	:= E_KNXnetIP_COMMON_CONSTANTS.HEADER_SIZE_10;
+stResult.aMessage[2] 	:= E_KNXnetIP_COMMON_CONSTANTS.KNXNETIP_VERSION_10;
+stResult.aMessage[3] 	:= M_GetHighByte(E_KNXnetIP_CORE.DISCONNECT_RESPONSE);
+stResult.aMessage[4] 	:= M_GetLowByte(E_KNXnetIP_CORE.DISCONNECT_RESPONSE);
+stResult.aMessage[5] 	:= M_GetHighByte(cTotalLength);
+stResult.aMessage[6] 	:= M_GetLowByte(cTotalLength);
+stResult.aMessage[7]	:= nCommunicationChannelID;
+stResult.aMessage[8]	:= E_KNXnetIP_CONNECTIONSTATE_RESPONSE_ERROR.E_NO_ERROR;
+
+// set length
+stResult.nByteLength := WORD_TO_UINT(cTotalLength);
+
+// return result
+M_BuildDisconnectResponse := stResult;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_BuildTunnelConnectionStateRequest" Id="{5f389ffe-4009-4f4b-8994-84757225e30f}" FolderPath="Builder\">
+      <Declaration><![CDATA[METHOD PRIVATE M_BuildTunnelConnectionStateRequest : ST_KNXnetIP_Message
+VAR
+	stResult			: ST_KNXnetIP_Message;
+END_VAR
+VAR CONSTANT
+	cTotalLength		: WORD := 16#0010;			// total length ares 16 octetts
+	cStructLengthHPAI	: BYTE := 16#08;			// structure length of HPAI are 8 octetts
+	cIPV4_UDP			: BYTE := 16#01;			// identifier for protocol version 4 address and port number for UDP communication
+	aIPv4Address		: T_IPv4AddrArr;			// ipv4 address in bytes
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// ------ KNXnet/IP header
+stResult.aMessage[1] 	:= E_KNXnetIP_COMMON_CONSTANTS.HEADER_SIZE_10;
+stResult.aMessage[2] 	:= E_KNXnetIP_COMMON_CONSTANTS.KNXNETIP_VERSION_10;
+stResult.aMessage[3] 	:= M_GetHighByte(E_KNXnetIP_CORE.CONNECTIONSTATE_REQUEST);
+stResult.aMessage[4] 	:= M_GetLowByte(E_KNXnetIP_CORE.CONNECTIONSTATE_REQUEST);
+stResult.aMessage[5] 	:= M_GetHighByte(cTotalLength);
+stResult.aMessage[6] 	:= M_GetLowByte(cTotalLength);
+
+// ------ KNXnet/IP body
+// --------- Communication Channel ID
+stResult.aMessage[7] 	:= nCommunicationChannelID;
+stResult.aMessage[8] 	:= 16#0;	// reserved
+
+// --------- HPAI of Client (control endpoint)
+M_AddHPAI(	stInMessage 			:= stResult,
+			nInStartByte			:= 9,
+			sInIPv4Addr				:= sInLocalHostIPv4Addr,
+			nInPortNumber			:= nInLocalPort);
+
+// set length
+stResult.nByteLength := WORD_TO_UINT(cTotalLength);
+
+// return result
+M_BuildTunnelConnectionStateRequest := stResult;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_BuildTunnelConnectRequest" Id="{dee5317a-6789-4de3-b15b-285507f38f11}" FolderPath="Builder\">
+      <Declaration><![CDATA[METHOD PRIVATE M_BuildTunnelConnectRequest : ST_KNXnetIP_Message
+VAR
+	stResult			: ST_KNXnetIP_Message;
+	aIPv4Address		: T_IPv4AddrArr;			// ipv4 address in bytes
+END_VAR
+VAR CONSTANT
+	cTotalLength		: WORD := 16#001A;			// total length ares 26 octetts
+	cStructLengthHPAI	: BYTE := 16#08;			// structure length of HPAI are 8 octetts
+	cStructLengthCRI	: BYTE := 16#04;			// structure length of CRI are 4 octetts
+	cIPV4_UDP			: BYTE := 16#01;			// identifier for protocol version 4 address and port number for UDP communication
+	cTUNNEL_LINKLAYER	: BYTE := 16#02;			// KNX Layer, e.g., TUNNEL_LINKLAYER
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// ------ KNXnet/IP header
+stResult.aMessage[1] 	:= E_KNXnetIP_COMMON_CONSTANTS.HEADER_SIZE_10;
+stResult.aMessage[2] 	:= E_KNXnetIP_COMMON_CONSTANTS.KNXNETIP_VERSION_10;
+stResult.aMessage[3] 	:= M_GetHighByte(E_KNXnetIP_CORE.CONNECT_REQUEST);
+stResult.aMessage[4] 	:= M_GetLowByte(E_KNXnetIP_CORE.CONNECT_REQUEST);
+stResult.aMessage[5] 	:= M_GetHighByte(cTotalLength);
+stResult.aMessage[6] 	:= M_GetLowByte(cTotalLength);
+
+// ------ KNXnet/IP body
+// --------- HPAI of Client (control endpoint)
+M_AddHPAI(	stInMessage 			:= stResult,
+			nInStartByte			:= 7,
+			sInIPv4Addr				:= sInLocalHostIPv4Addr,
+			nInPortNumber			:= nInLocalPort);
+
+// --------- HPAI of Server (data endpoint)
+M_AddHPAI(	stInMessage 			:= stResult,
+			nInStartByte			:= 15,
+			sInIPv4Addr				:= sInLocalHostIPv4Addr,
+			nInPortNumber			:= nInLocalPort);
+
+// --------- CRI (Connection request information)
+stResult.aMessage[23] 	:= cStructLengthCRI;
+stResult.aMessage[24] 	:= E_KNXnetIP_CONNECTION_TYPE.TUNNEL_CONNECTION;
+stResult.aMessage[25] 	:= cTUNNEL_LINKLAYER;
+stResult.aMessage[26] 	:= 16#0;	// reserved
+
+
+// set length
+stResult.nByteLength := WORD_TO_UINT(cTotalLength);
+
+// return result
+M_BuildTunnelConnectRequest := stResult;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_BuildTunnelDisconnectRequest" Id="{b46c34e5-c997-4d29-a5f2-134c76de1877}" FolderPath="Builder\">
+      <Declaration><![CDATA[METHOD PRIVATE M_BuildTunnelDisconnectRequest : ST_KNXnetIP_Message
+VAR
+	stResult			: ST_KNXnetIP_Message;
+END_VAR
+VAR CONSTANT
+	cTotalLength		: WORD := 16#0010;			// total length ares 16 octetts
+	cStructLengthHPAI	: BYTE := 16#08;			// structure length of HPAI are 8 octetts
+	cIPV4_UDP			: BYTE := 16#01;			// identifier for protocol version 4 address and port number for UDP communication
+	aIPv4Address		: T_IPv4AddrArr;			// ipv4 address in bytes
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT P_G_IsConnected THEN
+	RETURN;		// no necessary connection data available!
+END_IF
+
+// ------ KNXnet/IP header
+stResult.aMessage[1] 	:= E_KNXnetIP_COMMON_CONSTANTS.HEADER_SIZE_10;
+stResult.aMessage[2] 	:= E_KNXnetIP_COMMON_CONSTANTS.KNXNETIP_VERSION_10;
+stResult.aMessage[3] 	:= M_GetHighByte(E_KNXnetIP_CORE.DISCONNECT_REQUEST);
+stResult.aMessage[4] 	:= M_GetLowByte(E_KNXnetIP_CORE.DISCONNECT_REQUEST);
+stResult.aMessage[5] 	:= M_GetHighByte(cTotalLength);
+stResult.aMessage[6] 	:= M_GetLowByte(cTotalLength);
+
+// ------ KNXnet/IP body
+// --------- Communication Channel ID
+stResult.aMessage[7] 	:= nCommunicationChannelID;
+stResult.aMessage[8] 	:= 16#0;	// reserved
+
+// --------- HPAI of Client (control endpoint)
+M_AddHPAI(	stInMessage 			:= stResult,
+			nInStartByte			:= 9,
+			sInIPv4Addr	:= sInLocalHostIPv4Addr,
+			nInPortNumber			:= nInLocalPort);
+
+// set length
+stResult.nByteLength := WORD_TO_UINT(cTotalLength);
+
+// return result
+M_BuildTunnelDisconnectRequest := stResult;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_BuildTunnellingAck" Id="{7d986065-cb8b-41c5-afb1-b84aa7ae1b2b}" FolderPath="Builder\">
+      <Declaration><![CDATA[METHOD PRIVATE M_BuildTunnellingAck : ST_KNXnetIP_Message
+VAR
+	stResult			: ST_KNXnetIP_Message;
+END_VAR
+VAR CONSTANT
+	cTotalLength					: WORD := 16#000A;			// total length ares 10 octetts
+	cStructLengthCONNECTIONHEADER	: BYTE := 16#04;			// structure length of Connection header are 4 octetts
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// ------ KNXnet/IP header
+stResult.aMessage[1] 	:= E_KNXnetIP_COMMON_CONSTANTS.HEADER_SIZE_10;
+stResult.aMessage[2] 	:= E_KNXnetIP_COMMON_CONSTANTS.KNXNETIP_VERSION_10;
+stResult.aMessage[3] 	:= M_GetHighByte(E_KNXnetIP_TUNNELING.TUNNELING_ACK);
+stResult.aMessage[4] 	:= M_GetLowByte(E_KNXnetIP_TUNNELING.TUNNELING_ACK);
+stResult.aMessage[5] 	:= M_GetHighByte(cTotalLength);
+stResult.aMessage[6] 	:= M_GetLowByte(cTotalLength);
+stResult.aMessage[7]	:= cStructLengthCONNECTIONHEADER;
+stResult.aMessage[8]	:= nCommunicationChannelID;
+stResult.aMessage[9]	:= P_SequenceCounterReceive;
+stResult.aMessage[10]	:= E_KNXnetIP_TUNNELING_CONNECT_ERROR.E_NO_ERROR;
+
+// set length
+stResult.nByteLength := WORD_TO_UINT(cTotalLength);
+
+// return result
+M_BuildTunnellingAck := stResult;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_BuildTunnellingRequest" Id="{c878bdd2-239c-473b-ad80-92bd77441427}" FolderPath="Builder\">
+      <Declaration><![CDATA[METHOD PRIVATE M_BuildTunnellingRequest : ST_KNXnetIP_Message
+VAR_INPUT
+	stInGroupAddress	: ST_KNX_GroupAddress;		// destination group address
+	stInMessage			: ST_KNXnetIP_Message;		// message to send over tunnelling request	
+END_VAR
+VAR
+	stResult			: ST_KNXnetIP_Message;
+	nTotalLength		: UINT;
+	nByte				: BYTE;
+	nWord				: WORD;
+	i					: BYTE;
+END_VAR
+VAR CONSTANT
+	cStructLengthCONNECTIONHEADER	: BYTE := 16#04;			// structure length of Connection header are 4 octetts
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// ------ KNXnet/IP header
+stResult.aMessage[1] 	:= E_KNXnetIP_COMMON_CONSTANTS.HEADER_SIZE_10;
+stResult.aMessage[2] 	:= E_KNXnetIP_COMMON_CONSTANTS.KNXNETIP_VERSION_10;
+stResult.aMessage[3] 	:= M_GetHighByte(E_KNXnetIP_TUNNELING.TUNNELING_REQUEST);
+stResult.aMessage[4] 	:= M_GetLowByte(E_KNXnetIP_TUNNELING.TUNNELING_REQUEST);
+nTotalLength := E_KNXnetIP_COMMON_CONSTANTS.HEADER_SIZE_10 + cStructLengthCONNECTIONHEADER + 11 + UDINT_TO_BYTE(stInMessage.nByteLength);
+
+// ------ Connection header
+stResult.aMessage[7]		:= cStructLengthCONNECTIONHEADER;
+stResult.aMessage[8]		:= nCommunicationChannelID;
+stResult.aMessage[9]		:= P_SequenceCounterTransmit;
+P_SequenceCounterTransmit	:= P_SequenceCounterTransmit + 1;
+stResult.aMessage[10]		:= 16#00;						// reserved
+
+// ------ cEMI frame
+stResult.aMessage[11]	:= E_KNXnetIP_ServiceTypes.eL_DataReq;
+	// Additional Information Length (AddIL)
+stResult.aMessage[12]	:= 16#00;
+	// Ctrl1
+nByte := 16#BC;// 16#8C;		// 1... .... Frame Type: Standard (1), ..1. .... Repeat On Error: No (1), ...1 .... Broadcast Type: Domain (1), .... 11.. Priority: Low (3), ..... ..0. Ack Wanted: No (0), .... ...0 Confirmation Error: No (0)
+stResult.aMessage[13]	:= nByte;
+	// Ctrl2
+nByte := 16#E0; // 16#80;		// 1... .... Address Type: Group (1), .000 .... Hop Count: 0, .... 0000 Extended Frame Format: 0x0
+stResult.aMessage[14]	:= nByte;
+	// Source
+nWord := F_KNX_PHYSICALADDRESS_TO_WORD(stInPhysicalAddress);
+stResult.aMessage[15]	:= M_GetHighByte(nWord);	// 0x00 means that the server will send his own source physical address
+stResult.aMessage[16]	:= M_GetLowByte(nWord);		// 0x00 means that the server will send his own source physical address
+	// Destination
+nWord := F_KNX_GROUPADDRESS_TO_WORD(stInGroupAddress);
+stResult.aMessage[17]	:= M_GetHighByte(nWord);
+stResult.aMessage[18]	:= M_GetLowByte(nWord);
+	// Length, number of NPDU octets, TPCI octet not included!
+IF stInMessage.nByteLength <= 1 THEN
+	stResult.aMessage[19]	:= UDINT_TO_BYTE(stInMessage.nByteLength);
+	nTotalLength			:= nTotalLength - 1;
+ELSE
+	stResult.aMessage[19]	:= UDINT_TO_BYTE(stInMessage.nByteLength + 1);
+END_IF
+	// TPCI/APCI
+stResult.aMessage[20]	:= 16#00;
+stResult.aMessage[21]	:= 16#80;	// GroupValueWrite
+IF stInMessage.nByteLength <= 1 THEN
+	stResult.aMessage[21]	:= stResult.aMessage[21] OR stInMessage.aMessage[1];
+ELSE
+	FOR i := 1 TO UDINT_TO_BYTE(stInMessage.nByteLength) DO
+		stResult.aMessage[21 + i] := stInMessage.aMessage[i];
+	END_FOR
+END_IF
+
+
+
+// set length
+stResult.aMessage[5] 	:= M_GetHighByte(nTotalLength);
+stResult.aMessage[6] 	:= M_GetLowByte(nTotalLength);
+stResult.nByteLength := WORD_TO_UINT(nTotalLength);
+
+// return result
+M_BuildTunnellingRequest := stResult;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Connect" Id="{742832b9-513c-4934-a2dd-7f6851f1f58c}">
+      <Declaration><![CDATA[METHOD M_Connect : BOOL
+VAR
+	bResult 		: BOOL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF P_G_IsConnected THEN
+	bResult := TRUE;
+ELSIF P_G_IsConnecting THEN
+	;
+ELSIF NOT P_G_IsConnected AND NOT P_G_IsDisconnecting THEN
+	bInitiateConnection		:= TRUE;
+END_IF
+
+M_Connect := bResult;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Disconnect" Id="{8df10ca3-e247-4209-a3fe-b712188d42cb}">
+      <Declaration><![CDATA[METHOD M_Disconnect : BOOL
+VAR
+	bResult 		: BOOL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT P_G_IsConnected THEN
+	bResult := TRUE;
+ELSIF P_G_IsDisconnecting THEN
+	;
+ELSIF P_G_IsConnected AND NOT P_G_IsConnecting THEN
+	bInitiateDisconnection		:= TRUE;
+END_IF
+
+M_Disconnect := bResult;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetHeader" Id="{770b619c-c5ad-462b-a2e9-eb086c3f014e}">
+      <Declaration><![CDATA[METHOD PRIVATE M_GetHeader : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetHighByte" Id="{f683e655-ce25-40cf-90dd-4f3116adc7bb}">
+      <Declaration><![CDATA[METHOD PRIVATE M_GetHighByte : BYTE
+VAR_INPUT
+	nWord		: WORD;
+END_VAR
+VAR
+	nResult		: BYTE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nResult 		:= WORD_TO_BYTE(SHR(nWord, 8));
+M_GetHighByte 	:= nResult;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetLowByte" Id="{1a5ba7d2-ac92-44a7-9d53-fe33ad93c493}">
+      <Declaration><![CDATA[METHOD PRIVATE M_GetLowByte : BYTE
+VAR_INPUT
+	nWord		: WORD;
+END_VAR
+VAR
+	nResult		: BYTE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nResult 		:= WORD_TO_BYTE(nWord AND 16#FF);
+M_GetLowByte 	:= nResult;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Init" Id="{73a9c7a3-1c52-49b0-a81c-bab00173a37b}">
+      <Declaration><![CDATA[METHOD PRIVATE M_Init : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// reset buffer
+fbReceiveFiFoBuffer.M_Reset();
+
+bInit := FALSE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_IsCEMI_L_DataCon" Id="{e3220bdd-a9cd-44b0-9a3a-ab1c07037c29}" FolderPath="Identify\">
+      <Declaration><![CDATA[METHOD PRIVATE M_IsCEMI_L_DataCon : BOOL
+VAR_INPUT
+	stInMessage		: ST_KNXnetIP_Message;
+END_VAR
+VAR
+	bResult			: BOOL;
+END_VAR
+
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF stInMessage.aMessage[11] = E_KNXnetIP_ServiceTypes.eL_DataCon THEN
+	bResult := TRUE;
+END_IF
+M_IsCEMI_L_DataCon := bResult;
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_IsCEMI_L_DataInd" Id="{fa1f7f60-e535-40ee-bab2-38458cdf0738}" FolderPath="Identify\">
+      <Declaration><![CDATA[METHOD PRIVATE M_IsCEMI_L_DataInd : BOOL
+VAR_INPUT
+	stInMessage		: ST_KNXnetIP_Message;
+END_VAR
+VAR
+	bResult			: BOOL;
+END_VAR
+
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF stInMessage.aMessage[11] = E_KNXnetIP_ServiceTypes.eL_DataInd THEN
+	bResult := TRUE;
+END_IF
+M_IsCEMI_L_DataInd := bResult;
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_IsConnectionStateResponseValid" Id="{8a2b120b-38a2-42e9-bf48-a8e15b641570}" FolderPath="Identify\">
+      <Declaration><![CDATA[METHOD PRIVATE M_IsConnectionStateResponseValid : BOOL
+VAR_INPUT
+	stInMessage		: ST_KNXnetIP_Message;
+END_VAR
+VAR_OUTPUT
+	nErrorCode		: E_KNXnetIP_CONNECTIONSTATE_RESPONSE_ERROR;
+END_VAR
+VAR
+	bResult			: BOOL;
+	stResponse		: ST_KNXnetIP_ConnectionStateResponse;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF M_ParseServiceType(stInMessage) = E_KNXnetIP_CORE.CONNECTIONSTATE_RESPONSE THEN
+	stResponse := M_ParseConnectionStateResponse(stInMessage);
+	
+	nErrorCode := stResponse.nStatusCode;
+	IF stResponse.nStatusCode = E_KNXnetIP_CONNECTIONSTATE_RESPONSE_ERROR.E_NO_ERROR THEN
+		bResult := TRUE;
+	ELSE
+		; 	// errors
+	END_IF
+END_IF
+M_IsConnectionStateResponseValid := bResult;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_IsConnectResponseValid" Id="{7344840e-9619-4839-98b5-e49c511e3e7e}" FolderPath="Identify\">
+      <Declaration><![CDATA[METHOD PRIVATE M_IsConnectResponseValid : BOOL
+VAR_INPUT
+	stInMessage		: ST_KNXnetIP_Message;
+END_VAR
+VAR
+	bResult			: BOOL;
+	stResponse		: ST_KNXnetIP_ConnectResponse;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF M_ParseServiceType(stInMessage) = E_KNXnetIP_CORE.CONNECT_RESPONSE THEN
+	stResponse := M_ParseConnectResponse(stInMessage);
+	
+	IF stResponse.nStatusCode = E_KNXnetIP_CONNECT_RESPONSE_ERROR.E_NO_ERROR THEN
+		// store necessary data
+		nCommunicationChannelID 	:= stResponse.nCommunicationChannelID;
+		M_SetPhysicalAddressTunnelingServer(stResponse.nPhysicalAddress);
+
+		bResult := TRUE;
+	ELSE
+		; 	// errors
+	END_IF
+END_IF
+
+M_IsConnectResponseValid := bResult;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_IsDisconnectReqValid" Id="{e8903a82-3fac-47ab-be78-b9c1b7b87bb6}" FolderPath="Identify\">
+      <Declaration><![CDATA[METHOD PRIVATE M_IsDisconnectReqValid : BOOL
+VAR_INPUT
+	stInMessage		: ST_KNXnetIP_Message;
+END_VAR
+VAR
+	bResult			: BOOL;
+	stRequest		: ST_KNXnetIP_DisconnectRequest;
+	aIPv4Address	: T_IPv4AddrArr;			// ipv4 address in bytes
+	nDWord			: DWORD;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF M_ParseServiceType(stInMessage) = E_KNXnetIP_CORE.DISCONNECT_REQUEST THEN
+	// check the correct channel id, also
+	stRequest 		:= M_ParseDisconnectRequest(stInMessage);
+	aIPv4Address	:= F_ScanIPv4AddrIds(sInRemoteHostIPv4Addr);
+	nDWord	:= SHL(TO_DWORD(aIPv4Address[0]), 8*3);
+	nDWord	:= nDWord OR SHL(TO_DWORD(aIPv4Address[1]), 8*2);
+	nDWord	:= nDWord OR SHL(TO_DWORD(aIPv4Address[2]), 8);
+	nDWord	:= nDWord OR TO_DWORD(aIPv4Address[3]);
+	
+	IF stRequest.nControlEndpointIPv4 = nDWord AND nCommunicationChannelID = stRequest.nCommunicationChannelID THEN
+		bResult := TRUE;
+	END_IF
+END_IF
+
+M_IsDisconnectReqValid := bResult;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_IsDisconnectResponseValid" Id="{3ad1112c-dbb5-4481-9478-259f7378d588}" FolderPath="Identify\">
+      <Declaration><![CDATA[METHOD PRIVATE M_IsDisconnectResponseValid : BOOL
+VAR_INPUT
+	stInMessage		: ST_KNXnetIP_Message;
+END_VAR
+VAR
+	bResult			: BOOL;
+	stResponse		: ST_KNXnetIP_DisconnectResponse;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF M_ParseServiceType(stInMessage) = E_KNXnetIP_CORE.DISCONNECT_RESPONSE THEN
+	stResponse := M_ParseDisconnectResponse(stInMessage);
+	
+// 	IF stResponse.nStatusCode = E_KNXnetIP_CONNECT_RESPONSE_ERROR.E_NO_ERROR THEN
+		// clear storee necessary data
+		nCommunicationChannelID 	:= 16#0;
+		M_SetPhysicalAddressTunnelingServer(16#0);
+
+		bResult := TRUE;
+// 	ELSE
+// 		; 	// errors
+// 	END_IF
+END_IF
+
+M_IsDisconnectResponseValid := bResult;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_IsTunnellingAckValid" Id="{3046a6d9-9809-47e9-b875-c466a077db04}" FolderPath="Identify\">
+      <Declaration><![CDATA[METHOD PRIVATE M_IsTunnellingAckValid: BOOL
+VAR_INPUT
+	stInMessage		: ST_KNXnetIP_Message;
+END_VAR
+VAR
+	bResult				: BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF M_ParseServiceType(stInMessage) = E_KNXnetIP_TUNNELING.TUNNELING_ACK THEN
+	bResult := TRUE;
+END_IF
+
+M_IsTunnellingAckValid := bResult;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_IsTunnellingReqValid" Id="{66a3f9d2-dc8d-4612-b9ec-7c326c633b8b}" FolderPath="Identify\">
+      <Declaration><![CDATA[METHOD PRIVATE M_IsTunnellingReqValid : BOOL
+VAR_INPUT
+	stInMessage		: ST_KNXnetIP_Message;
+END_VAR
+VAR
+	bResult				: BOOL;
+	nStartByteConHeader	: UINT := 7;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF M_ParseServiceType(stInMessage) = E_KNXnetIP_TUNNELING.TUNNELING_REQUEST THEN
+	M_RefreshSequenceCounter(M_ParseConnectionHeader(stInMessage, nStartByteConHeader));
+	bResult := TRUE;
+END_IF
+
+M_IsTunnellingReqValid := bResult;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ManagerConnection" Id="{36eac3df-f4e4-441a-ae6e-2d9d9465f5f7}" FolderPath="Manager\">
+      <Declaration><![CDATA[METHOD PRIVATE M_ManagerConnection : BOOL
+VAR_INST
+	eState							: E_KNXnetIPStateConnection;			// state machine for connection to tunneling server
+	                                                                		
+	bInit							: BOOL := TRUE;                 		
+	                                                                		
+	// udp connection                                               		
+	fbCloseSocket					: FB_SocketClose;						// will close the open TCP/UDP/IP socket
+	fbCloseAllSockets				: FB_SocketCloseAll;					// will close all TCP/UDP/IP sockets
+	fbCreateUdpSocket				: FB_SocketUdpCreate;					// create a new udp socket for communication
+	tnWaitForResponse				: TON;									// timer to wait for connect response
+	tnNextConnectionStateRequest	: TON;									// timer to send next connection state request, to keep connection alive
+	stMessage						: ST_KNXnetIP_Message;					// message for KNXnetIP
+	nCountFailedConStateResponses	: UINT;									// counter for failed connection state responses
+	nErrorCounter					: UINT;									// error counter 
+END_VAR
+VAR CONSTANT
+	ctTimeout						: TIME := T#5S;
+	stSocketClear					: T_HSOCKET;
+	ctTimeoutNextConnectionRequest	: TIME := CONNECTION_HEARTBEAT_TIME;	// time to send next connection request, to kepp connection alive
+	cnMaxFailedConStateResponses	: UINT := 3;							// max count of failed connection responses
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF bInit THEN
+	fbCloseSocket( bExecute := FALSE);
+	bInit := FALSE;
+END_IF
+
+// disconnecting request received
+IF P_DisconnectReceived THEN
+	P_DisconnectReceived := FALSE;
+	eState := E_KNXnetIPStateConnection.eAckDisconnectReq;
+END_IF
+
+CASE eState OF
+	
+// init, with deletion of existing socket handle -------------------------------------------------------------------------------------------------
+	E_KNXnetIPStateConnection.eInit:
+		M_Reset();
+		nCountFailedConStateResponses	:= 0;
+		nErrorCounter					:= 0;
+		P_SequenceCounterTransmit		:= 0;
+		fbTransmitFiFoBuffer.M_Reset();
+		fbTransmitFiFoBufferQuick.M_Reset();
+	
+			// close open socket if needed
+		IF P_Socket.handle <> 0 AND NOT fbCloseSocket.bError THEN			
+			fbCloseSocket( sSrvNetId	:= sInSrvNetId,
+							hSocket		:= P_Socket,
+							bExecute	:= TRUE,
+							tTimeout	:= ctTimeout);
+		END_IF
+		
+			// clear connected socket
+		IF NOT fbCloseSocket.bBusy AND NOT fbCloseSocket.bError THEN
+			_stConnectedSocket := stSocketClear;
+			fbCloseSocket(bExecute := FALSE);
+		END_IF
+			// repeat if error occur
+		IF fbCloseSocket.bError THEN
+			fbCloseSocket(bExecute := FALSE);
+			IF fbCloseSocket.nErrId = 16#8002 THEN
+				_stConnectedSocket := stSocketClear;
+			END_IF
+		END_IF
+		
+			// initiate new udp connection
+		IF bInitiateConnection AND P_Socket.handle = 0 THEN
+			bInitiateConnection	:= FALSE;			
+			fbCreateUdpSocket(bExecute := FALSE);
+			P_G_IsConnecting	:= TRUE;
+			eState 	:= E_KNXnetIPStateConnection.eCreateUdpSocket;
+		END_IF
+		
+// create udp socket for connection-------------------------------------------------------------------------------------------------
+	E_KNXnetIPStateConnection.eCreateUdpSocket:
+		fbCreateUdpSocket(	sSrvNetId		:= sInSrvNetId,
+							sLocalHost		:= sInLocalHostIPv4Addr,
+							nLocalPort		:= nInLocalPort,
+							bExecute		:= TRUE,
+							tTimeout		:= ctTimeout);
+			// wait udp socket is created
+		IF NOT fbCreateUdpSocket.bBusy AND NOT fbCreateUdpSocket.bError THEN
+			_stConnectedSocket	:= fbCreateUdpSocket.hSocket;
+			fbCreateUdpSocket(bExecute := FALSE);
+			eState 		:= E_KNXnetIPStateConnection.eSendConnectRequestToTunnelingServer;
+		END_IF
+			// if error occur, repeat delete socket and try again
+		IF fbCreateUdpSocket.bError THEN			
+			bInitiateConnection	:= TRUE;
+			fbCreateUdpSocket(bExecute := FALSE);
+			
+				// error this socket is already in use
+			IF fbCreateUdpSocket.nErrId = 16#80072740 THEN
+				fbCloseAllSockets(bExecute := FALSE);
+				eState	:= E_KNXnetIPStateConnection.eCloseAllSockets;
+			ELSE				
+				eState	:= E_KNXnetIPStateConnection.eInit;
+			END_IF	
+		
+		END_IF
+		
+// send request to connecting to tunneling server -------------------------------------------------------------------------------------------------
+	E_KNXnetIPStateConnection.eSendConnectRequestToTunnelingServer:
+		
+		fbTransmitFiFoBufferQuick.M_Append(M_BuildTunnelConnectRequest());
+		tnWaitForResponse(IN := FALSE);
+		eState := E_KNXnetIPStateConnection.eWaitForConnectResponse;
+		
+// wait for response of tunneling server -------------------------------------------------------------------------------------------------
+	E_KNXnetIPStateConnection.eWaitForConnectResponse:
+		
+		IF P_ConnectResponseReceived THEN
+			P_ConnectResponseReceived := FALSE;
+				// connection response was valid
+			eState := E_KNXnetIPStateConnection.eConnected;
+			P_G_IsConnecting 	:= FALSE;
+			P_G_IsConnected 	:= TRUE;
+		END_IF
+	
+		tnWaitForResponse(IN := TRUE, PT := CONNECT_REQUEST_TIMEOUT);
+			// too long time for response
+		IF tnWaitForResponse.Q THEN
+			tnWaitForResponse(IN := FALSE);
+				// repeat tunneling connection request
+			eState := E_KNXnetIPStateConnection.eSendConnectRequestToTunnelingServer;
+		END_IF
+	
+// connected, than wait for sending next connection  -------------------------------------------------------------------------------------------------	
+	E_KNXnetIPStateConnection.eConnected:
+		tnNextConnectionStateRequest(IN := TRUE, PT := ctTimeoutNextConnectionRequest);
+		
+		IF tnNextConnectionStateRequest.Q THEN
+			tnNextConnectionStateRequest(IN := FALSE);
+			eState := E_KNXnetIPStateConnection.eSendConnectionStateRequest;
+		END_IF
+		
+			// disconnecting valid connection
+		IF bInitiateDisconnection THEN
+			tnNextConnectionStateRequest(IN := FALSE);
+			bInitiateDisconnection 	:= FALSE;
+			P_G_IsDisconnecting		:= TRUE;
+			eState := E_KNXnetIPStateConnection.eDisconnectValidConnection;
+		ELSIF P_Reconnect THEN
+			tnNextConnectionStateRequest(IN := FALSE);
+			P_Reconnect := FALSE;	
+				// delete connection and initiate new connection
+			bInitiateConnection := TRUE;
+			eState := E_KNXnetIPStateConnection.eDisconnectValidConnection;
+		END_IF
+		
+// send connection state request to server -------------------------------------------------------------------------------------------------	
+	E_KNXnetIPStateConnection.eSendConnectionStateRequest:	
+		
+		fbTransmitFiFoBufferQuick.M_Append(M_BuildTunnelConnectionStateRequest());
+		tnWaitForResponse(IN := FALSE);
+		eState 			:= E_KNXnetIPStateConnection.eWaitForConnectionStateResponse;
+		
+// wait for connection state response from server -------------------------------------------------------------------------------------------------	
+	E_KNXnetIPStateConnection.eWaitForConnectionStateResponse:	
+	
+		IF P_ConnectionStateResponseReceived THEN
+			P_ConnectionStateResponseReceived 	:= FALSE;
+			nCountFailedConStateResponses		:= 0;
+			tnWaitForResponse(IN := FALSE);
+				// connection state response was valid
+			eState := E_KNXnetIPStateConnection.eConnected;
+		END_IF
+	
+		tnWaitForResponse(IN := TRUE, PT := CONNECTIONSTATE_REQUEST_TIMEOUT);
+			// too long time for response
+		IF tnWaitForResponse.Q THEN
+			tnWaitForResponse(IN := FALSE);
+			IF nCountFailedConStateResponses > cnMaxFailedConStateResponses THEN
+					// delete connection and initiate new connection
+				bInitiateConnection := TRUE;
+				eState := E_KNXnetIPStateConnection.eInit;
+			ELSE
+					// try new request again
+				nCountFailedConStateResponses := nCountFailedConStateResponses + 1;
+				eState := E_KNXnetIPStateConnection.eSendConnectionStateRequest;				
+			END_IF
+		ELSIF P_Reconnect THEN
+			P_Reconnect := FALSE;	
+				// delete connection and initiate new connection
+			bInitiateConnection := TRUE;
+			eState := E_KNXnetIPStateConnection.eDisconnectValidConnection;
+		END_IF
+
+// disconnect valid connection -------------------------------------------------------------------------------------------------	
+	E_KNXnetIPStateConnection.eDisconnectValidConnection:
+	
+		fbTransmitFiFoBufferQuick.M_Append(M_BuildTunnelDisconnectRequest());
+		tnWaitForResponse(IN := FALSE);
+		eState := E_KNXnetIPStateConnection.eWaitForDisconnectResponse;
+		
+// wait for disconnect response from server -------------------------------------------------------------------------------------------------	
+	E_KNXnetIPStateConnection.eWaitForDisconnectResponse:	
+
+		IF P_DisconnectResponseReceived THEN
+			P_DisconnectResponseReceived := FALSE;
+				// connection state response was valid
+			eState := E_KNXnetIPStateConnection.eInit;
+		END_IF
+	
+		tnWaitForResponse(IN := TRUE, PT := T#1S);
+			// too long time for response
+		IF tnWaitForResponse.Q THEN
+			tnWaitForResponse(IN := FALSE);
+				// delete connection and initiate new connection
+			eState := E_KNXnetIPStateConnection.eInit;
+		END_IF
+		
+// ack disconnect request -------------------------------------------------------------------------------------------------	
+	E_KNXnetIPStateConnection.eAckDisconnectReq:
+			// clear storee necessary data
+		nCommunicationChannelID 	:= 16#0;
+		M_SetPhysicalAddressTunnelingServer(16#0);
+		bInitiateConnection			:= TRUE;		// try new connecting
+		eState := E_KNXnetIPStateConnection.eInit;
+
+	
+// close all sockets if needed -------------------------------------------------------------------------------------------------	
+	E_KNXnetIPStateConnection.eCloseAllSockets:		
+		
+		fbCloseAllSockets(bExecute := TRUE);
+		IF NOT fbCloseAllSockets.bBusy THEN
+			fbCloseAllSockets(bExecute := FALSE);
+			eState := E_KNXnetIPStateConnection.eInit;
+		END_IF
+	
+// error
+	E_KNXnetIPStateConnection.eError:
+		
+		;
+		
+ELSE
+	;
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ManagerConvertReceived" Id="{ce78a848-5d2c-4ef9-9339-345c8443cac3}" FolderPath="Manager\">
+      <Declaration><![CDATA[METHOD PRIVATE M_ManagerConvertReceived : BOOL
+VAR_INST
+	stMessage			: ST_KNXnetIP_Message;
+	stcEMI_L_DataInd	: ST_KNXnetIP_cEMI;
+	stcEMI_L_DataCon	: ST_KNXnetIP_cEMI;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF fbReceiveFiFoBuffer.P_G_Count > 0 THEN
+	IF M_IsTunnellingReqValid(fbReceiveFiFoBuffer.M_Look()) THEN
+		stMessage := fbReceiveFiFoBuffer.M_Drop();
+		IF M_IsCEMI_L_DataInd(stMessage) THEN
+			stcEMI_L_DataInd := M_ParseTunnellingRequest(stMessage);
+			stGroupAddressMessages.aMessage[stcEMI_L_DataInd.stDestinationGroupAddress.nFirst,
+												stcEMI_L_DataInd.stDestinationGroupAddress.nMiddle,
+												stcEMI_L_DataInd.stDestinationGroupAddress.nLow] := stcEMI_L_DataInd.Data;
+		END_IF
+	
+	ELSIF M_IsTunnellingReqValid(fbReceiveFiFoBuffer.M_LookLast()) THEN
+		stMessage := fbReceiveFiFoBuffer.M_DropLast();
+		IF M_IsCEMI_L_DataInd(stMessage) THEN
+			stcEMI_L_DataInd := M_ParseTunnellingRequest(stMessage);
+			stGroupAddressMessages.aMessage[stcEMI_L_DataInd.stDestinationGroupAddress.nFirst,
+												stcEMI_L_DataInd.stDestinationGroupAddress.nMiddle,
+												stcEMI_L_DataInd.stDestinationGroupAddress.nLow] := stcEMI_L_DataInd.Data;
+		ELSIF M_IsCEMI_L_DataCon(stMessage) THEN
+			stcEMI_L_DataCon := M_ParseTunnellingRequest(stMessage);
+			// confirm bit detection
+			IF (stcEMI_L_DataCon.nControlField1 AND 16#01) = 1 THEN
+				P_TransmitTimeout := TRUE;
+			END_IF
+		END_IF
+		
+	END_IF	
+
+
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ManagerReceiving" Id="{268b01ec-ae5e-4704-b436-8bc18a903cb3}" FolderPath="Manager\">
+      <Declaration><![CDATA[METHOD PRIVATE M_ManagerReceiving : BOOL
+VAR_INST
+	eState							: E_KNXnetIPStateReceivedTelegrams;	// state machine for receiving telegrams
+
+	// udp receiving
+	fbSocketUdpReceive				: FB_SocketUdpReceiveFrom;			// function block for receiving data telegrams over udp
+	aBufferReceive					: ST_KNXnetIP_Message;				// receiving buffer
+	sRemoteHost						: T_IPv4Addr;						// remote host, which are the data was received
+	nRemotePort						: UDINT;							// remote port, which are the data was received
+	nErrorCode						: UINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE eState OF
+	
+	E_KNXnetIPStateReceivedTelegrams.eInit:
+	
+		fbSocketUdpReceive(bExecute := FALSE);
+		// wait for connection, then it is possible to hear on port for new incomming telegrams
+		IF P_G_IsConnecting OR P_G_IsConnected THEN
+			eState := E_KNXnetIPStateReceivedTelegrams.eWaitForNextTelegram;
+		END_IF
+		
+	E_KNXnetIPStateReceivedTelegrams.eWaitForNextTelegram:
+	
+		fbSocketUdpReceive(	sSrvNetId		:= sInSrvNetId,
+							hSocket			:= P_Socket,
+							cbLen			:= SIZEOF(aBufferReceive.aMessage),
+							pDest			:= ADR(aBufferReceive.aMessage[1]),
+							bExecute		:= TRUE,
+							sRemoteHost		=> sRemoteHost,
+							nRemotePort		=> nRemotePort,
+							nRecBytes		=> aBufferReceive.nByteLength);
+							
+		IF NOT fbSocketUdpReceive.bBusy AND NOT fbSocketUdpReceive.bError THEN
+			IF M_AreHostAndPortValid(sRemoteHost, nRemotePort) THEN
+				IF M_IsDisconnectReqValid(aBufferReceive) THEN
+					P_DisconnectReceived := TRUE;
+				ELSIF P_G_IsDisconnecting AND M_IsDisconnectResponseValid(aBufferReceive) THEN
+					P_DisconnectResponseReceived := TRUE;
+				ELSIF P_G_IsConnected AND M_IsConnectionStateResponseValid(aBufferReceive, nErrorCode => nErrorCode) OR_ELSE nErrorCode <> E_KNXnetIP_CONNECTIONSTATE_RESPONSE_ERROR.E_NO_ERROR THEN
+					IF nErrorCode <> E_KNXnetIP_CONNECTIONSTATE_RESPONSE_ERROR.E_NO_ERROR THEN
+						P_Reconnect := TRUE;
+					ELSE						
+						P_ConnectionStateResponseReceived := TRUE;
+					END_IF
+				ELSIF P_G_IsConnecting AND M_IsConnectResponseValid(aBufferReceive) THEN
+					P_ConnectResponseReceived := TRUE;
+				ELSIF M_IsTunnellingAckValid(aBufferReceive) THEN
+					P_TunnellingAckReceived := TRUE;
+				ELSIF M_IsTunnellingReqValid(aBufferReceive) THEN
+					P_TunnellingReqReceived := TRUE;
+						// if host and port valid, then append the message to local receive buffer. In this case it is not possible to overload the buffer.
+					fbReceiveFiFoBuffer.M_Append(aBufferReceive);
+				END_IF				
+			END_IF
+				// next receiving of data
+			fbSocketUdpReceive(bExecute := FALSE);
+		ELSIF fbSocketUdpReceive.bError THEN
+				// try receiving again
+			fbSocketUdpReceive(bExecute := FALSE);
+		END_IF
+
+ELSE
+	;
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ManagerTransmit" Id="{5547cb11-b34b-4da6-9933-f08668a817c0}" FolderPath="Manager\">
+      <Declaration><![CDATA[METHOD PRIVATE M_ManagerTransmit : BOOL
+VAR_INST
+	eState							: E_KNXnetIPStateTransmitTelegrams;	// state machine for transmitting telegrams
+
+	//	// udp connection
+	fbSendToUdpSocket				: FB_SocketUdpSendTo;				// function block to send messages to the connected udp socket
+	stMessage						: ST_KNXnetIP_Message;				// message for KNXnetIP
+
+	stStoredTunnellingReq			: ST_KNXnetIP_Message;				// stored message to send this to server again
+	bIsWaitingForTunnellingAck		: BOOL;								// next tunneling telegram only send if Ack from first is received
+	tnWaitTunnellingAck				: TON;								// timer for waiting of tunnelling ack from server
+	nCountWaitTunnellingAck			: UINT;								// counter for waiting of tunnelling ack from server
+	aBufferLookLast					: ST_KNXnetIP_Message;				// last message in buffer, if with high priority than send this first
+	tnWaitTimeNextTransmit			: TON;								// timer for next transmit
+END_VAR
+VAR CONSTANT
+	stClear							: ST_KNXnetIP_Message;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// reset State to init, if no valid socket available
+IF P_Socket.handle = 0 THEN
+	eState 						:= E_KNXnetIPStateTransmitTelegrams.eInit;
+	stMessage					:= stClear;
+	bIsWaitingForTunnellingAck	:= FALSE;
+END_IF
+
+// waiting timer for ack from server if tunnelling request was send
+tnWaitTunnellingAck(IN := bIsWaitingForTunnellingAck, PT := KNXnetIP_TIMEOUT_CONSTANS.TUNNELING_REQUEST_TIMEOUT);
+
+CASE eState OF
+	
+	E_KNXnetIPStateTransmitTelegrams.eInit:
+	
+		fbSendToUdpSocket(bExecute := FALSE);
+		// wait for connection, then it is possible to transmit new telegrams
+		IF P_G_IsConnecting OR P_G_IsConnected THEN
+			eState := E_KNXnetIPStateTransmitTelegrams.eWaitForNextTelegramToTransmit;
+		END_IF
+		
+	E_KNXnetIPStateTransmitTelegrams.eWaitForNextTelegramToTransmit:
+	
+		fbSendToUdpSocket(bExecute := FALSE);
+		
+			// disconnect response
+		IF P_DisconnectReceived THEN
+			P_DisconnectReceived 		:= FALSE;
+			stMessage					:= M_BuildDisconnectResponse();
+			fbTransmitFiFoBuffer.M_Reset();
+			// tunnelling request received
+		ELSIF P_TunnellingReqReceived THEN
+			P_TunnellingReqReceived		:= FALSE;
+			stMessage					:= M_BuildTunnellingAck();
+			// tunnelling ack received
+		ELSIF P_TunnellingAckReceived THEN
+			P_TunnellingAckReceived		:= FALSE;
+			bIsWaitingForTunnellingAck	:= FALSE;
+			nCountWaitTunnellingAck		:= 0;
+		ELSIF tnWaitTunnellingAck.Q THEN
+			IF nCountWaitTunnellingAck > 1 THEN
+				nCountWaitTunnellingAck 	:= 0;
+				bIsWaitingForTunnellingAck	:= FALSE;
+				P_Reconnect := TRUE;
+			ELSE
+				stMessage 					:= stStoredTunnellingReq;			// do not count sequence counter
+				nCountWaitTunnellingAck		:= nCountWaitTunnellingAck + 1;
+				bIsWaitingForTunnellingAck	:= FALSE;
+			END_IF
+		ELSE		
+			IF fbTransmitFiFoBufferQuick.P_G_Count > 0 THEN
+				stMessage	:= fbTransmitFiFoBufferQuick.M_Drop();
+			END_IF
+			IF NOT P_Reconnect AND fbTransmitFiFoBuffer.P_G_Count > 0 THEN					
+				IF NOT M_IsTunnellingReqValid(fbTransmitFiFoBuffer.M_Look()) THEN
+					stMessage	:= fbTransmitFiFoBuffer.M_Drop();
+				ELSIF M_IsTunnellingReqValid(fbTransmitFiFoBuffer.M_Look()) AND NOT bIsWaitingForTunnellingAck THEN
+					stMessage					:= fbTransmitFiFoBuffer.M_Drop();
+					stStoredTunnellingReq		:= stMessage;
+					nCountWaitTunnellingAck		:= nCountWaitTunnellingAck + 1;			
+				END_IF
+			END_IF
+		END_IF
+		
+		IF stClear.nByteLength <> stMessage.nByteLength THEN
+			eState := E_KNXnetIPStateTransmitTelegrams.eTransmit;
+		END_IF
+	
+	E_KNXnetIPStateTransmitTelegrams.eTransmit:	
+	
+		fbSendToUdpSocket(	sSrvNetId	:= sInSrvNetId,
+							hSocket		:= P_Socket,
+							sRemoteHost	:= sInRemoteHostIPv4Addr,
+							nRemotePort	:= nInRemotePort,
+							cbLen		:= stMessage.nByteLength,
+							pSrc		:= ADR(stMessage.aMessage[1]),
+							bExecute	:= TRUE);
+	
+		IF NOT fbSendToUdpSocket.bBusy AND NOT fbSendToUdpSocket.bError THEN		
+			tnWaitTimeNextTransmit(IN := FALSE);	
+				// if necessary stop transmitting with timeout		
+				eState := E_KNXnetIPStateTransmitTelegrams.eWaitForNextTelegramToTransmit;
+			IF M_IsTunnellingReqValid(stMessage) THEN
+				bIsWaitingForTunnellingAck := TRUE;
+			END_IF
+			stMessage 	:= stClear;
+		ELSIF fbSendToUdpSocket.bError THEN
+			stMessage 	:= stClear;
+			eState 		:= E_KNXnetIPStateTransmitTelegrams.eWaitTimeForNextTransmit;
+		END_IF	
+
+	
+	E_KNXnetIPStateTransmitTelegrams.eWaitTimeForNextTransmit:		
+
+		tnWaitTimeNextTransmit(IN := TRUE, PT := T#100MS);
+		IF tnWaitTimeNextTransmit.Q THEN		
+			tnWaitTimeNextTransmit(IN := FALSE);			
+			eState := E_KNXnetIPStateTransmitTelegrams.eWaitForNextTelegramToTransmit;
+		END_IF
+
+ELSE
+	;
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Parse_cEMI_L_DataCon" Id="{1cd15c1c-5d63-4357-8ab0-4554fd193d70}" FolderPath="Parser\">
+      <Declaration><![CDATA[METHOD PRIVATE M_Parse_cEMI_L_DataCon : ST_KNXnetIP_cEMI
+VAR_INPUT
+	stInMessage		: ST_KNXnetIP_Message;
+	nStartByte		: UINT;
+END_VAR
+VAR
+	i				: UINT;
+END_VAR
+VAR_INST
+	stResult		: ST_KNXnetIP_cEMI;
+	nWord			: WORD;
+	nFollowOctets	: BYTE;
+END_VAR
+
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stResult.nMessageCode				:= stInMessage.aMessage[nStartByte];
+stResult.nAdditionalInfoLength		:= stInMessage.aMessage[nStartByte+1];
+// IF stResult.nAdditionalInfoLength > 16#0 THEN
+// 	stResult.nAdditionalInfo			:= stInMessage.aMessage[nStartByte];
+// END_IF
+stResult.nControlField1				:= stInMessage.aMessage[nStartByte+2+stResult.nAdditionalInfoLength];
+stResult.nControlField2				:= stInMessage.aMessage[nStartByte+3+stResult.nAdditionalInfoLength];
+nWord := SHL(BYTE_TO_WORD(stInMessage.aMessage[nStartByte+4+stResult.nAdditionalInfoLength]), 8);
+nWord := nWord OR BYTE_TO_WORD(stInMessage.aMessage[nStartByte+5+stResult.nAdditionalInfoLength]);
+stResult.nSourcePhysicalAddress 	:= nWord;
+stResult.stSourcePhysicalAddress	:= F_WORD_TO_KNX_PHYSICALADDRESS(nWord);
+
+
+nWord := SHL(BYTE_TO_WORD(stInMessage.aMessage[nStartByte+6+stResult.nAdditionalInfoLength]), 8);
+nWord := nWord OR BYTE_TO_WORD(stInMessage.aMessage[nStartByte+7+stResult.nAdditionalInfoLength]);
+stResult.nDestinationGroupAddress	:= nWord;
+stResult.stDestinationGroupAddress	:= F_WORD_TO_KNX_GROUPADDRESS(nWord);
+
+stResult.LengthDataField			:= stInMessage.aMessage[nStartByte+8+stResult.nAdditionalInfoLength];
+// TPCI is next octet nStartByte+9+stResult.nAdditionalInfoLength, TPCI is not included in LengthDataField!
+nFollowOctets := stResult.LengthDataField;
+// APCI is next octet nStartByte+10+stResult.nAdditionalInfoLength
+nFollowOctets := nFollowOctets - 1;
+// fill data fields
+IF nFollowOctets > 0 THEN
+	FOR i := 1 TO nFollowOctets DO
+		stResult.Data[i] := stInMessage.aMessage[nStartByte+10+stResult.nAdditionalInfoLength+i];
+	END_FOR
+ELSE
+	stResult.Data[i] := stInMessage.aMessage[nStartByte+10+stResult.nAdditionalInfoLength] AND 16#1;
+END_IF
+
+M_Parse_cEMI_L_DataCon := stResult;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Parse_cEMI_L_DataInd" Id="{0a7752bb-5beb-4946-8dbd-2d199154b375}" FolderPath="Parser\">
+      <Declaration><![CDATA[METHOD PRIVATE M_Parse_cEMI_L_DataInd : ST_KNXnetIP_cEMI
+VAR_INPUT
+	stInMessage		: ST_KNXnetIP_Message;
+	nStartByte		: UINT;
+END_VAR
+VAR
+	i				: UINT;
+END_VAR
+VAR_INST
+	stResult		: ST_KNXnetIP_cEMI;
+	nWord			: WORD;
+	nFollowOctets	: BYTE;
+END_VAR
+
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stResult.nMessageCode				:= stInMessage.aMessage[nStartByte];
+stResult.nAdditionalInfoLength		:= stInMessage.aMessage[nStartByte+1];
+// IF stResult.nAdditionalInfoLength > 16#0 THEN
+// 	stResult.nAdditionalInfo			:= stInMessage.aMessage[nStartByte];
+// END_IF
+stResult.nControlField1				:= stInMessage.aMessage[nStartByte+2+stResult.nAdditionalInfoLength];
+stResult.nControlField2				:= stInMessage.aMessage[nStartByte+3+stResult.nAdditionalInfoLength];
+nWord := SHL(BYTE_TO_WORD(stInMessage.aMessage[nStartByte+4+stResult.nAdditionalInfoLength]), 8);
+nWord := nWord OR BYTE_TO_WORD(stInMessage.aMessage[nStartByte+5+stResult.nAdditionalInfoLength]);
+stResult.nSourcePhysicalAddress 	:= nWord;
+stResult.stSourcePhysicalAddress	:= F_WORD_TO_KNX_PHYSICALADDRESS(nWord);
+
+
+nWord := SHL(BYTE_TO_WORD(stInMessage.aMessage[nStartByte+6+stResult.nAdditionalInfoLength]), 8);
+nWord := nWord OR BYTE_TO_WORD(stInMessage.aMessage[nStartByte+7+stResult.nAdditionalInfoLength]);
+stResult.nDestinationGroupAddress	:= nWord;
+stResult.stDestinationGroupAddress	:= F_WORD_TO_KNX_GROUPADDRESS(nWord);
+
+stResult.LengthDataField			:= stInMessage.aMessage[nStartByte+8+stResult.nAdditionalInfoLength];
+// TPCI is next octet nStartByte+9+stResult.nAdditionalInfoLength, TPCI is not included in LengthDataField!
+nFollowOctets := stResult.LengthDataField;
+// APCI is next octet nStartByte+10+stResult.nAdditionalInfoLength
+nFollowOctets := nFollowOctets - 1;
+// fill data fields
+IF nFollowOctets > 0 THEN
+	FOR i := 1 TO nFollowOctets DO
+		stResult.Data[i] := stInMessage.aMessage[nStartByte+10+stResult.nAdditionalInfoLength+i];
+	END_FOR
+ELSE
+	stResult.Data[1] := stInMessage.aMessage[nStartByte+10+stResult.nAdditionalInfoLength] AND 16#01;
+END_IF
+
+M_Parse_cEMI_L_DataInd := stResult;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ParseCommonHeader" Id="{d9273b69-1d12-48f8-8294-c46878ed874a}" FolderPath="Parser\">
+      <Declaration><![CDATA[METHOD PRIVATE M_ParseCommonHeader : ST_KNXnetIP_CommonHeader
+VAR_INPUT
+	stInMessage		: ST_KNXnetIP_Message;
+END_VAR
+VAR
+	stHeader		: ST_KNXnetIP_CommonHeader;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stHeader.nHeaderSize		:= stInMessage.aMessage[1];
+stHeader.nProtocolVersion	:= stInMessage.aMessage[2];
+stHeader.nServiceType		:= SHL(TO_WORD(stInMessage.aMessage[3]), 8);
+stHeader.nServiceType		:= stHeader.nServiceType OR TO_WORD(stInMessage.aMessage[4]);
+stHeader.nTotalLength		:= SHL(TO_WORD(stInMessage.aMessage[5]), 8);
+stHeader.nTotalLength		:= stHeader.nServiceType OR TO_WORD(stInMessage.aMessage[6]);
+
+M_ParseCommonHeader			:= stHeader;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ParseConnectionHeader" Id="{4386139c-bde9-477f-b6b6-0fd3e854bad3}" FolderPath="Parser\">
+      <Declaration><![CDATA[METHOD PRIVATE M_ParseConnectionHeader : ST_KNXnetIP_ConnectionHeader
+VAR_INPUT
+	stInMessage		: ST_KNXnetIP_Message;
+	nStartByte		: UINT;
+END_VAR
+VAR
+	stConHeader		: ST_KNXnetIP_ConnectionHeader;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stConHeader.nStructureLength		:= stInMessage.aMessage[nStartByte];
+stConHeader.nCommunicationChannel	:= stInMessage.aMessage[nStartByte+1];
+stConHeader.nSequenceCounter		:= stInMessage.aMessage[nStartByte+2];
+stConHeader.nReserved				:= stInMessage.aMessage[nStartByte+3];
+
+M_ParseConnectionHeader				:= stConHeader;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ParseConnectionStateResponse" Id="{9408ccc1-1afd-4995-83bb-638a88095286}" FolderPath="Parser\">
+      <Declaration><![CDATA[METHOD PRIVATE M_ParseConnectionStateResponse : ST_KNXnetIP_ConnectionStateResponse
+VAR_INPUT
+	stInMessage		: ST_KNXnetIP_Message;
+END_VAR
+VAR
+	stCommonHeader	: ST_KNXnetIP_CommonHeader;
+	stConResponse	: ST_KNXnetIP_ConnectionStateResponse;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stCommonHeader 	:= M_ParseCommonHeader(stInMessage);
+stConResponse.nHeaderSize		:= stCommonHeader.nHeaderSize;
+stConResponse.nProtocolVersion	:= stCommonHeader.nProtocolVersion;
+stConResponse.nServiceType		:= stCommonHeader.nServiceType;
+stConResponse.nTotalLength		:= stCommonHeader.nTotalLength;
+
+stConResponse.nCommunicationChannelID	:= stInMessage.aMessage[7];
+stConResponse.nStatusCode				:= stInMessage.aMessage[8];
+
+M_ParseConnectionStateResponse := stConResponse;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ParseConnectResponse" Id="{2940e45b-2d2b-44c8-b5c3-c9eaa933a3b4}" FolderPath="Parser\">
+      <Declaration><![CDATA[METHOD PRIVATE M_ParseConnectResponse : ST_KNXnetIP_ConnectResponse
+VAR_INPUT
+	stInMessage		: ST_KNXnetIP_Message;
+END_VAR
+VAR
+	stCommonHeader	: ST_KNXnetIP_CommonHeader;
+	stConResponse	: ST_KNXnetIP_ConnectResponse;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stCommonHeader 	:= M_ParseCommonHeader(stInMessage);
+stConResponse.nHeaderSize		:= stCommonHeader.nHeaderSize;
+stConResponse.nProtocolVersion	:= stCommonHeader.nProtocolVersion;
+stConResponse.nServiceType		:= stCommonHeader.nServiceType;
+stConResponse.nTotalLength		:= stCommonHeader.nTotalLength;
+
+stConResponse.nCommunicationChannelID	:= stInMessage.aMessage[7];
+stConResponse.nStatusCode				:= stInMessage.aMessage[8];
+stConResponse.nStructureLength			:= stInMessage.aMessage[9];
+stConResponse.nHostProtocolCode			:= stInMessage.aMessage[10];
+stConResponse.nDataEndpointIPv4			:= SHL(TO_DWORD(stInMessage.aMessage[11]), 8*3);
+stConResponse.nDataEndpointIPv4			:= stConResponse.nDataEndpointIPv4 OR SHL(TO_DWORD(stInMessage.aMessage[12]), 8*2);
+stConResponse.nDataEndpointIPv4			:= stConResponse.nDataEndpointIPv4 OR SHL(TO_DWORD(stInMessage.aMessage[13]), 8);
+stConResponse.nDataEndpointIPv4			:= stConResponse.nDataEndpointIPv4 OR TO_DWORD(stInMessage.aMessage[14]);
+stConResponse.nDataEndpointPort			:= SHL(TO_WORD(stInMessage.aMessage[15]), 8);
+stConResponse.nDataEndpointPort			:= stConResponse.nDataEndpointPort OR TO_WORD(stInMessage.aMessage[16]);
+stConResponse.nStructueLengthCRD		:= stInMessage.aMessage[17];
+stConResponse.nConnectionTypeCode		:= stInMessage.aMessage[18];
+stConResponse.nPhysicalAddress			:= SHL(TO_WORD(stInMessage.aMessage[19]), 8);
+stConResponse.nPhysicalAddress			:= stConResponse.nPhysicalAddress OR TO_WORD(stInMessage.aMessage[20]);
+
+M_ParseConnectResponse := stConResponse;
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ParseDisconnectRequest" Id="{d50526e1-053c-4f6c-8420-4df2417714f8}" FolderPath="Parser\">
+      <Declaration><![CDATA[METHOD PRIVATE M_ParseDisconnectRequest : ST_KNXnetIP_DisconnectRequest
+VAR_INPUT
+	stInMessage		: ST_KNXnetIP_Message;
+END_VAR
+VAR
+	stCommonHeader	: ST_KNXnetIP_CommonHeader;
+	stDisconRequest	: ST_KNXnetIP_DisconnectRequest;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stCommonHeader 	:= M_ParseCommonHeader(stInMessage);
+stDisconRequest.nHeaderSize			:= stCommonHeader.nHeaderSize;
+stDisconRequest.nProtocolVersion	:= stCommonHeader.nProtocolVersion;
+stDisconRequest.nServiceType		:= stCommonHeader.nServiceType;
+stDisconRequest.nTotalLength		:= stCommonHeader.nTotalLength;
+
+stDisconRequest.nCommunicationChannelID	:= stInMessage.aMessage[7];
+//			:= stInMessage.aMessage[8];		reserved
+stDisconRequest.nStructLength			:= stInMessage.aMessage[9];
+stDisconRequest.nHostProtocolCode		:= stInMessage.aMessage[10];
+
+stDisconRequest.nControlEndpointIPv4	:= SHL(TO_DWORD(stInMessage.aMessage[11]), 8*3);
+stDisconRequest.nControlEndpointIPv4	:= stDisconRequest.nControlEndpointIPv4 OR SHL(TO_DWORD(stInMessage.aMessage[12]), 8*2);
+stDisconRequest.nControlEndpointIPv4	:= stDisconRequest.nControlEndpointIPv4 OR SHL(TO_DWORD(stInMessage.aMessage[13]), 8);
+stDisconRequest.nControlEndpointIPv4	:= stDisconRequest.nControlEndpointIPv4 OR TO_DWORD(stInMessage.aMessage[14]);
+stDisconRequest.nControlEndpointPort	:= SHL(TO_WORD(stInMessage.aMessage[15]), 8);
+stDisconRequest.nControlEndpointPort	:= stDisconRequest.nControlEndpointPort OR TO_WORD(stInMessage.aMessage[16]);
+stDisconRequest.nCommunicationChannelID	:= stInMessage.aMessage[11];
+stDisconRequest.nCommunicationChannelID	:= stInMessage.aMessage[12];
+
+M_ParseDisconnectRequest := stDisconRequest;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ParseDisconnectResponse" Id="{9e76c135-21d5-4bb4-b5b6-a27449e0d045}" FolderPath="Parser\">
+      <Declaration><![CDATA[METHOD PRIVATE M_ParseDisconnectResponse : ST_KNXnetIP_DisconnectResponse
+VAR_INPUT
+	stInMessage		: ST_KNXnetIP_Message;
+END_VAR
+VAR
+	stCommonHeader	: ST_KNXnetIP_CommonHeader;
+	stConResponse	: ST_KNXnetIP_DisconnectResponse;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stCommonHeader 	:= M_ParseCommonHeader(stInMessage);
+stConResponse.nHeaderSize		:= stCommonHeader.nHeaderSize;
+stConResponse.nProtocolVersion	:= stCommonHeader.nProtocolVersion;
+stConResponse.nServiceType		:= stCommonHeader.nServiceType;
+stConResponse.nTotalLength		:= stCommonHeader.nTotalLength;
+
+stConResponse.nCommunicationChannelID	:= stInMessage.aMessage[7];
+stConResponse.nStatusCode				:= stInMessage.aMessage[8];
+
+M_ParseDisconnectResponse := stConResponse;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ParseServiceType" Id="{2bc56210-80b0-4ddd-8053-448bab5a155c}" FolderPath="Parser\">
+      <Declaration><![CDATA[METHOD PRIVATE M_ParseServiceType : WORD
+VAR_INPUT
+	stInMessage		: ST_KNXnetIP_Message;
+END_VAR
+VAR
+	nWord			: WORD;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nWord := SHL(TO_WORD(stInMessage.aMessage[3]), 8);
+nWord := nWord OR TO_WORD(stInMessage.aMessage[4]);
+
+M_ParseServiceType := nWord;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ParseTunnellingRequest" Id="{612210fb-7283-4ae4-9b84-c49983ffae7d}" FolderPath="Parser\">
+      <Declaration><![CDATA[METHOD PRIVATE M_ParseTunnellingRequest : ST_KNXnetIP_cEMI
+VAR_INPUT
+	stInMessage			: ST_KNXnetIP_Message;
+END_VAR
+VAR
+	stCommonHeader		: ST_KNXnetIP_CommonHeader;
+	stConnectionHeader	: ST_KNXnetIP_ConnectionHeader;
+	stConResponse		: ST_KNXnetIP_cEMI;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// actually only L_Data.ind is provided
+stCommonHeader		:= M_ParseCommonHeader(stInMessage);			// only for debugging parsing
+stConnectionHeader	:= M_ParseConnectionHeader(stInMessage, 7);		// only for debugging parsing
+IF M_IsCEMI_L_DataInd(stInMessage) THEN
+	stConResponse		:= M_Parse_cEMI_L_DataInd(stInMessage, 11);
+ELSIF M_IsCEMI_L_DataCon(stInMessage) THEN
+	stConResponse		:= M_Parse_cEMI_L_DataCon(stInMessage, 11);
+END_IF
+M_ParseTunnellingRequest := stConResponse;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_RefreshSequenceCounter" Id="{e2a83989-19c7-4c37-9bfe-0ddf116505aa}">
+      <Declaration><![CDATA[METHOD PRIVATE M_RefreshSequenceCounter : BOOL
+VAR_INPUT
+	stInConHeader		: ST_KNXnetIP_ConnectionHeader;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// refresh sequence counter with actual value
+P_SequenceCounterReceive := stInConHeader.nSequenceCounter;	// connection header sequence counter]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Reset" Id="{80fe1ffa-b7f5-4b9d-96db-19f322543f73}">
+      <Declaration><![CDATA[METHOD PRIVATE M_Reset : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[P_ConnectionStateResponseReceived 	:= FALSE;
+P_ConnectResponseReceived 			:= FALSE;
+P_DisconnectReceived				:= FALSE;
+P_DisconnectResponseReceived		:= FALSE;
+P_Reconnect							:= FALSE;
+P_TunnellingAckReceived				:= FALSE;
+P_TunnellingReqReceived				:= FALSE;
+P_G_IsConnected 					:= FALSE;
+P_G_IsConnecting 					:= FALSE;
+P_G_IsDisconnecting					:= FALSE;
+P_TransmitTimeout					:= FALSE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetPhysicalAddressTunnelingServer" Id="{58f7fd21-9785-4264-aeae-79059d015447}">
+      <Declaration><![CDATA[METHOD PRIVATE M_SetPhysicalAddressTunnelingServer : BOOL
+VAR_INPUT
+	nInPhysicalAddress		: WORD;			// physical address in word format to convert to local structure
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nPhysicalAddressTunneling			:= nInPhysicalAddress;
+_stPhysicalAddressTunneling			:= F_WORD_TO_KNX_PHYSICALADDRESS(nInPhysicalAddress);
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_TransmitMessage" Id="{5f4efedd-b139-49fa-a403-78d0439b81d6}">
+      <Declaration><![CDATA[// transmitting group address message to tunnelling server
+METHOD M_TransmitMessage : BOOL
+VAR_INPUT
+	stInGroupAddress		: ST_KNX_GroupAddress;			// group address
+	stInMessage				: ST_KNXnetIP_Message;			// message to send
+END_VAR
+VAR
+	bSameMessageAsLast		: BOOL;
+	i						: UDINT;
+END_VAR
+VAR_INST
+	stLastGroupAddress		: ST_KNX_GroupAddress;			// last stored group address
+	stLastMessage			: ST_KNXnetIP_Message;			// last stored knx message
+	stMessage				: ST_KNXnetIP_Message;
+END_VAR
+
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT P_G_IsConnected THEN RETURN; END_IF
+// only appending possible if connection is done
+stMessage := M_BuildTunnellingRequest(stInGroupAddress, stInMessage);
+fbTransmitFiFoBuffer.M_Append(stMessage);
+stLastGroupAddress 	:= stInGroupAddress;
+stLastMessage		:= stInMessage;
+M_TransmitMessage 	:= TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="P_ConnectionStateResponseReceived" Id="{45394663-dc00-47b5-8e5f-0a3e0ea87584}" FolderPath="Manager\">
+      <Declaration><![CDATA[{attribute 'monitoring' := 'variable'}
+PROPERTY PRIVATE P_ConnectionStateResponseReceived : BOOL]]></Declaration>
+      <Get Name="Get" Id="{ad4e821a-6016-4a16-83c2-acac1f42ebb6}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[P_ConnectionStateResponseReceived := _bConnectionStateResponseReceived;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{b9eba50f-899c-4fe6-a637-11b7df44fcda}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_bConnectionStateResponseReceived := P_ConnectionStateResponseReceived;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="P_ConnectResponseReceived" Id="{3bbfa79c-759d-45e0-b07d-3d237f81e27c}" FolderPath="Manager\">
+      <Declaration><![CDATA[{attribute 'monitoring' := 'variable'}
+PROPERTY PRIVATE P_ConnectResponseReceived : BOOL]]></Declaration>
+      <Get Name="Get" Id="{722d1b74-55eb-44ad-9e57-b4cb4406b936}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[P_ConnectResponseReceived := _bConnectResponseReceived;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{cbb58857-027b-4aff-8f91-7e0853cd7fa3}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_bConnectResponseReceived := P_ConnectResponseReceived;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="P_DisconnectReceived" Id="{27d61182-082d-4e32-adb7-7a0b32baed3c}" FolderPath="Manager\">
+      <Declaration><![CDATA[{attribute 'monitoring' := 'variable'}
+PROPERTY PRIVATE P_DisconnectReceived : BOOL]]></Declaration>
+      <Get Name="Get" Id="{87fb1148-001a-4d1e-afc0-1ec60fddedc9}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_bDisconnectReceived := P_DisconnectReceived;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{891f64ff-b8db-440b-a257-feccae7b77c4}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[P_DisconnectReceived := _bDisconnectReceived;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="P_DisconnectResponseReceived" Id="{f67b224b-9119-4cf6-af64-cd2d6b703f9c}" FolderPath="Manager\">
+      <Declaration><![CDATA[{attribute 'monitoring' := 'variable'}
+PROPERTY PRIVATE P_DisconnectResponseReceived : BOOL]]></Declaration>
+      <Get Name="Get" Id="{9a291b26-bd0c-4a30-9136-c813ccc2b0a5}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[P_DisconnectResponseReceived := _bDisconnectResponseReceived;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{81e6aabc-cc0c-43dd-badc-5f6cc87184b5}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_bDisconnectResponseReceived := P_DisconnectResponseReceived;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="P_G_GroupAddressMessages" Id="{21613ff1-c179-4bef-8d5d-fc8948882a91}">
+      <Declaration><![CDATA[{attribute 'monitoring' := 'variable'}
+PROPERTY P_G_GroupAddressMessages : REFERENCE TO ST_KNXnetIP_MessageOfAllGroupAddresses]]></Declaration>
+      <Get Name="Get" Id="{57bb623b-722b-4eec-873e-c656533473da}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[P_G_GroupAddressMessages REF= stGroupAddressMessages;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="P_G_IsConnected" Id="{af742954-c8f5-4a44-82b2-f01f19772316}">
+      <Declaration><![CDATA[{attribute 'monitoring' := 'variable'}
+PROPERTY P_G_IsConnected : BOOL]]></Declaration>
+      <Get Name="Get" Id="{d8cd277e-1349-4e92-b555-f7bf48acae2c}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[P_G_IsConnected := _bIsConnected;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{a6462c7e-de81-4303-8c1b-fecebe7851b0}">
+        <Declaration><![CDATA[PRIVATE VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_bIsConnected := P_G_IsConnected;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="P_G_IsConnecting" Id="{043e0d67-2d38-4da0-981d-a8c933df6519}">
+      <Declaration><![CDATA[{attribute 'monitoring' := 'variable'}
+PROPERTY P_G_IsConnecting : BOOL]]></Declaration>
+      <Get Name="Get" Id="{fb51bcc1-ef8e-467f-b04c-429f63469670}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[P_G_IsConnecting := _bIsConnecting;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{b870252a-3934-4dd1-bb38-9d20683e36d8}">
+        <Declaration><![CDATA[PRIVATE VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_bIsConnecting := P_G_IsConnecting;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="P_G_IsDisconnecting" Id="{6f76e4c3-7348-4525-99da-ed9201760b66}">
+      <Declaration><![CDATA[{attribute 'monitoring' := 'variable'}
+PROPERTY P_G_IsDisconnecting : BOOL]]></Declaration>
+      <Get Name="Get" Id="{68bbb6aa-8d13-4ec2-8c58-d20201c2ad04}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[P_G_IsDisconnecting := _bIsDisconnecting;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{b5bb3c11-60a0-49d3-8a49-18a57f96f748}">
+        <Declaration><![CDATA[PRIVATE VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_bIsDisconnecting := P_G_IsDisconnecting;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="P_G_PhysicalAddress" Id="{12d510e5-256f-4a2a-a1d0-02d69de32ae1}">
+      <Declaration><![CDATA[{attribute 'monitoring' := 'variable'}
+PROPERTY P_G_PhysicalAddress : REFERENCE TO ST_KNX_PhysicalAddress]]></Declaration>
+      <Get Name="Get" Id="{a335faee-dbe1-4273-9e4a-98f57c0300a2}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[P_G_PhysicalAddress REF= _stPhysicalAddressTunneling;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="P_Reconnect" Id="{12c15ba8-6c28-405a-87ab-8d004bfaee44}" FolderPath="Manager\">
+      <Declaration><![CDATA[{attribute 'monitoring' := 'variable'}
+PROPERTY PRIVATE P_Reconnect : BOOL]]></Declaration>
+      <Get Name="Get" Id="{54b97f80-21cd-4592-89d0-ba8d481489f3}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[P_Reconnect := _bReconnect;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{92e79ed3-262c-4880-aee6-49744df8471f}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_bReconnect := P_Reconnect;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="P_SequenceCounterReceive" Id="{1ddc32cf-5620-46b2-9736-13c64ffef2d2}">
+      <Declaration><![CDATA[{attribute 'monitoring' := 'variable'}
+PROPERTY PRIVATE P_SequenceCounterReceive : BYTE]]></Declaration>
+      <Get Name="Get" Id="{5da689e3-2faa-42a2-af3a-748ea70a7324}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[P_SequenceCounterReceive := _nSequenceCounter;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{f992cf94-f265-4eb2-8d77-95e0d1f5cd74}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_nSequenceCounter := P_SequenceCounterReceive;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="P_SequenceCounterTransmit" Id="{afd157c7-908d-454c-a60f-41fbff8e24b5}">
+      <Declaration><![CDATA[{attribute 'monitoring' := 'variable'}
+PROPERTY PRIVATE P_SequenceCounterTransmit : BYTE]]></Declaration>
+      <Get Name="Get" Id="{5ca82b6a-8ab0-4dbe-981b-f6529787c634}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[P_SequenceCounterTransmit := _nSequenceCounterTransmit;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{113bd48d-26d1-4d2b-9775-dca1537cc025}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_nSequenceCounterTransmit := P_SequenceCounterTransmit;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="P_Socket" Id="{76a085e1-4223-48f9-9acf-bfee3fe962c1}">
+      <Declaration><![CDATA[{attribute 'monitoring' := 'variable'}
+PROPERTY PRIVATE P_Socket : REFERENCE TO T_HSOCKET]]></Declaration>
+      <Get Name="Get" Id="{58c6619a-b0d9-42df-bb8a-5d7203563679}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[P_Socket REF= _stConnectedSocket;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="P_TransmitTimeout" Id="{393d4761-6c18-4d62-92f9-5e4d6b4f6524}" FolderPath="Manager\">
+      <Declaration><![CDATA[{attribute 'monitoring' := 'variable'}
+PROPERTY PRIVATE P_TransmitTimeout : BOOL]]></Declaration>
+      <Get Name="Get" Id="{b5c02634-93a3-4842-b040-b7f5499fe9ca}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[P_TransmitTimeout := _bTransmitTimeout;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{eee3bbce-d457-4073-9339-6ba8defc5ab6}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_bTransmitTimeout := P_TransmitTimeout;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="P_TunnellingAckReceived" Id="{73abd0fa-adc2-4053-bc03-8d7d0c294362}" FolderPath="Manager\">
+      <Declaration><![CDATA[{attribute 'monitoring' := 'variable'}
+PROPERTY PRIVATE P_TunnellingAckReceived : BOOL]]></Declaration>
+      <Get Name="Get" Id="{a8d856bf-b3ed-47e3-99e8-f9e339a36378}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[P_TunnellingAckReceived := _bTunnellingAckReceived;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{6c621c51-f073-430a-860a-bbe016bb4419}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_bTunnellingAckReceived := P_TunnellingAckReceived;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="P_TunnellingReqReceived" Id="{b18ffbd3-304a-4f42-9ad5-2154f994d1aa}" FolderPath="Manager\">
+      <Declaration><![CDATA[{attribute 'monitoring' := 'variable'}
+PROPERTY PRIVATE P_TunnellingReqReceived : BOOL]]></Declaration>
+      <Get Name="Get" Id="{1775a186-4dcd-42ae-80c0-8a658335fa8c}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[P_TunnellingReqReceived := _bTunnelReqReceived;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{a3371bf5-0bf3-464c-a51a-02933611711f}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_bTunnelReqReceived := P_TunnellingReqReceived;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+  </POU>
+</TcPlcObject>

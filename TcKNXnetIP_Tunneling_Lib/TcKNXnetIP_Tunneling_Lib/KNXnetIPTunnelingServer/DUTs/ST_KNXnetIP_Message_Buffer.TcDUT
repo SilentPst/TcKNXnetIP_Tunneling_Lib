@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="ST_KNXnetIP_Message_Buffer" Id="{1f0c98b7-243a-41ce-96a5-bd3711ce913d}">
+    <Declaration><![CDATA[TYPE ST_KNXnetIP_Message_Buffer :
+STRUCT
+	aKNXnetIP_Messages		: ARRAY[1..255] OF ST_KNXnetIP_Message;		// array of messages
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

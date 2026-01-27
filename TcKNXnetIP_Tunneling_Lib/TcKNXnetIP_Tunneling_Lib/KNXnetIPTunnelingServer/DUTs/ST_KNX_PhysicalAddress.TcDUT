@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="ST_KNX_PhysicalAddress" Id="{9c4e620a-a5ac-40ba-ae95-606dbe3197e6}">
+    <Declaration><![CDATA[TYPE ST_KNX_PhysicalAddress :
+STRUCT
+	nArea		: BYTE;			// first number of physical address 1.x.x
+	nLine		: BYTE;			// second number of physical address x.1.x
+	nDevice		: BYTE;			// third number of physical address x.x.1
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="F_KNX_PHYSICALADDRESS_TO_WORD" Id="{23ed0a0c-e9da-4648-83b8-97584cfd9d23}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_KNX_PHYSICALADDRESS_TO_WORD : WORD
+VAR_INPUT
+	stInPhysicalAddress		: ST_KNX_PhysicalAddress;
+END_VAR
+VAR
+	nResult					: WORD;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[nResult			:= SHL(BYTE_TO_WORD(stInPhysicalAddress.nArea), 4*3);
+nResult			:= nResult OR SHL(BYTE_TO_WORD(stInPhysicalAddress.nLine),4*2);
+nResult			:= nResult OR BYTE_TO_WORD(stInPhysicalAddress.nDevice);
+F_KNX_PHYSICALADDRESS_TO_WORD := nResult;]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

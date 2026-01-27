@@ -1,0 +1,210 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="KNXnetIP_Message_FiFoBuffer" Id="{e3dca1fe-1ebb-4cee-a4b5-5582bb3fa255}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+:Description: function block for buffering KNXnetIP_Messages as FiFo
+:Instructions for use: only using in KNXnetIPTunnelingServer necessary
+*)
+FUNCTION_BLOCK KNXnetIP_Message_FiFoBuffer
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR CONSTANT
+	cBufferSizeMin		: UINT := 1;
+	cBufferSizeMax		: UINT := 100;
+END_VAR
+VAR
+	aBuffer				: ARRAY[cBufferSizeMin..cBufferSizeMax] OF ST_KNXnetIP_Message;
+	nPointerLast		: UINT;										// pointer of last added message
+	
+	// backing
+	_nCount				: UINT;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="M_Append" Id="{94c7856b-b594-4346-824f-223391bf3c01}">
+      <Declaration><![CDATA[// append new message to buffer
+METHOD M_Append : BOOL
+VAR_INPUT
+	stInMessage		: ST_KNXnetIP_Message;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nPointerLast 	:= nPointerLast + 1;
+P_G_Count		:= nPointerLast;
+IF nPointerLast > cBufferSizeMax THEN
+		// no further appending possible, buffer is full
+	M_Append 		:= FALSE;
+	nPointerLast 	:= cBufferSizeMax;
+	P_G_Count		:= nPointerLast;
+	RETURN;
+END_IF
+
+	// add new message to buffer
+aBuffer[nPointerLast] := stInMessage;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Drop" Id="{c9b37924-93c7-44a8-9213-b352ff14be86}">
+      <Declaration><![CDATA[// return first added message and delete it from buffer
+METHOD M_Drop : ST_KNXnetIP_Message
+VAR
+	stResult		: ST_KNXnetIP_Message;
+END_VAR
+VAR CONSTANT
+	stClear			: ST_KNXnetIP_Message;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stResult 	:= M_Look();
+M_Drop 		:= stResult;
+IF stResult.nByteLength = stClear.nByteLength THEN 
+	RETURN; // no deletion of first message necessary
+END_IF		
+M_RemoveFirst();
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_DropLast" Id="{b83c39a8-9e5d-425d-a8e0-4135946e9d19}">
+      <Declaration><![CDATA[// return last added message and delete it from buffer
+METHOD M_DropLast : ST_KNXnetIP_Message
+VAR
+	stResult		: ST_KNXnetIP_Message;
+END_VAR
+VAR CONSTANT
+	stClear			: ST_KNXnetIP_Message;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stResult 	:= M_LookLast();
+M_DropLast 		:= stResult;
+IF stResult.nByteLength = stClear.nByteLength THEN 
+	RETURN; // no deletion of last message necessary
+END_IF		
+M_RemoveLast();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Look" Id="{38babd10-9196-470c-a788-ff0a69445dc7}">
+      <Declaration><![CDATA[// return first added message, no deletion of the message from buffer
+METHOD M_Look : ST_KNXnetIP_Message
+VAR CONSTANT
+	stClear			: ST_KNXnetIP_Message;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[	// no messages to drop
+IF nPointerLast = 0 THEN
+	M_Look := stClear;
+	RETURN;	
+END_IF
+
+M_Look := aBuffer[cBufferSizeMin];		// look first added message of buffer]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LookLast" Id="{e20b2267-325d-4dbc-aae6-f22ee7a0ce3a}">
+      <Declaration><![CDATA[// return last added message, no deletion of the message from buffer
+METHOD M_LookLast : ST_KNXnetIP_Message
+VAR CONSTANT
+	stClear			: ST_KNXnetIP_Message;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[	// no messages to drop
+IF nPointerLast = 0 THEN
+	M_LookLast := stClear;
+	RETURN;	
+END_IF
+
+M_LookLast := aBuffer[nPointerLast];		// look at last buffered message]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_RemoveFirst" Id="{b7b39e35-3af0-487d-889c-95bb79a85a17}">
+      <Declaration><![CDATA[METHOD PRIVATE M_RemoveFirst : BOOL
+VAR
+	i				: UINT;
+END_VAR
+VAR CONSTANT
+	stClear			: ST_KNXnetIP_Message;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[	// nothing to remove from buffer
+IF nPointerLast <= 0 THEN
+	RETURN;
+END_IF
+
+IF nPointerLast > 1 THEN
+		// move all buffer message one further
+	FOR i := cBufferSizeMin TO nPointerLast - 1 DO
+		aBuffer[i] := aBuffer[i + 1];
+	END_FOR
+END_IF
+aBuffer[nPointerLast] := stClear;			// clear last buffered message
+nPointerLast 	:= nPointerLast - 1;
+P_G_Count		:= nPointerLast;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_RemoveLast" Id="{bbe34849-c4cb-4fd8-ae5f-c1955bac26b2}">
+      <Declaration><![CDATA[METHOD PRIVATE M_RemoveLast : BOOL
+VAR
+	i				: UINT;
+END_VAR
+VAR CONSTANT
+	stClear			: ST_KNXnetIP_Message;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[	// nothing to remove from buffer
+IF nPointerLast <= 0 THEN
+	RETURN;
+END_IF
+aBuffer[nPointerLast] := stClear;			// clear last buffered message
+nPointerLast 	:= nPointerLast - 1;
+P_G_Count		:= nPointerLast;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Reset" Id="{60b8cc95-d77d-49e9-b1d0-772205798ae5}">
+      <Declaration><![CDATA[// reset all buffer data
+METHOD M_Reset : BOOL
+VAR
+	i			: UINT;
+END_VAR
+VAR CONSTANT
+	stClear		: ST_KNXnetIP_Message;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// clear all data in buffer
+FOR i := cBufferSizeMin TO cBufferSizeMax DO
+	aBuffer[i] := stClear;
+END_FOR
+nPointerLast 	:= 0;
+P_G_Count		:= nPointerLast;
+
+M_Reset := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="P_G_Count" Id="{00ed7e5d-6112-47fc-ae92-920cb542a227}">
+      <Declaration><![CDATA[{attribute 'monitoring' := 'variable'}
+PROPERTY P_G_Count : UINT]]></Declaration>
+      <Get Name="Get" Id="{2f04d958-bb04-4ac0-8ee9-679024ba7da9}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[P_G_Count := _nCount;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{b0aceff5-aaa7-47d8-89b5-b91ac699958e}">
+        <Declaration><![CDATA[PRIVATE 
+VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_nCount := P_G_Count;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+  </POU>
+</TcPlcObject>

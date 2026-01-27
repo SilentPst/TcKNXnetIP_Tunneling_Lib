@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="ST_KNXnetIP_DisconnectRequest" Id="{eff5adc0-2343-4189-bceb-50d14e719a65}">
+    <Declaration><![CDATA[TYPE ST_KNXnetIP_DisconnectRequest EXTENDS ST_KNXnetIP_CommonHeader :
+STRUCT
+	nCommunicationChannelID		: BYTE;
+	nStructLength				: BYTE;	
+	nHostProtocolCode			: BYTE;
+	nControlEndpointIPv4		: DWORD;
+	nControlEndpointPort		: WORD;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <GVL Name="KNXnetIP_TIMEOUT_CONSTANS" Id="{bf10ac49-cef5-4144-ab70-e22879cbb8b7}" ParameterList="True">
+    <Declaration><![CDATA[VAR_GLOBAL CONSTANT
+	CONNECT_REQUEST_TIMEOUT					: TIME := T#10S;		// KNXnet/IP Client shall wait for 10 seconds for a CONNECT_RESPONSE frame from KNXnet/IP Server.
+	CONNECTIONSTATE_REQUEST_TIMEOUT			: TIME := T#10S;		// KNXnet/IP Client shall wait for 10 seconds for a CONNECTIONSTATE_RESPONSE frame from KNXnet/IP Server.
+	DEVICE_CONFIGURATION_REQUEST_TIMEOUT	: TIME := T#10S;		// KNXnet/IP Client shall wait for 10 seconds for a DEVICE_CONFIGURATION_RESPONSE frame from KNXnet/IP Server.
+	TUNNELING_REQUEST_TIMEOUT				: TIME := T#1S;			// KNXnet/IP Client shall wait for 1 second for a TUNNELING_ACK response on a TUNNELING_REQUEST frame from KNXnet/IP Server.
+	CONNECTION_ALIVE_TIME					: TIME := T#120S;		// If the KNXnet/IP Server does not receive a heartbeat request within 120 seconds of the last correctly received message frame, the server shall terminate the connection by sending a DISCONNECT_REQUEST to the client’s control endpoint.
+	CONNECTION_HEARTBEAT_TIME				: TIME := T#40S;		// heartbeat time to send a new connection state request
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

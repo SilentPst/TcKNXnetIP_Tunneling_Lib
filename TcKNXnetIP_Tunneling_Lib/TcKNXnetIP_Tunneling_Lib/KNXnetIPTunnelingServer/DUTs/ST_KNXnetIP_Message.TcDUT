@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="ST_KNXnetIP_Message" Id="{9b58a6b2-ba4c-446c-973c-592aea0a53b3}">
+    <Declaration><![CDATA[TYPE ST_KNXnetIP_Message :
+STRUCT
+	aMessage		: ARRAY[1..255] OF BYTE;		// byte array of message
+	nByteLength		: UDINT := SIZEOF(aMessage);	// count of used bytes for message
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

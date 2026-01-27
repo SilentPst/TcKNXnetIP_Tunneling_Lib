@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="E_KNXnetIP_DEVICE_MANAGEMENT" Id="{ff43062c-bbea-47bf-9afa-e5da34ad590c}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'to_string'}
+TYPE E_KNXnetIP_DEVICE_MANAGEMENT :
+(
+	DEVICE_CONFIGURATION_REQUEST	:= 16#0310,			// Reads/Writes KNXnet/IP device configuration data (Interface Object Properties)
+	DEVICE_CONFIGURATION_ACK		:= 16#0311			// Sent by a KNXnet/IP device to confirm the reception of the DEVICE_CONFIGURATION_REQUEST. 
+) WORD 
+;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>
