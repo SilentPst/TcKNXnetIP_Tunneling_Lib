@@ -30,6 +30,13 @@ VAR_IN_OUT
 END_VAR
 ]]></Declaration>
     </Method>
+    <Method Name="M_InterpretAsFloat32" Id="{ec4095e0-de89-4da6-8872-91cb0fa9fd48}">
+      <Declaration><![CDATA[METHOD M_InterpretAsFloat32 : Real
+VAR_INPUT
+	stInData		: ARRAY[*] OF BYTE;
+END_VAR
+]]></Declaration>
+    </Method>
     <Method Name="M_InterpretAsINT16" Id="{ddfdcc34-3a09-41e1-a4d1-3a9db6d7f146}">
       <Declaration><![CDATA[METHOD M_InterpretAsINT16 : INT
 VAR_IN_OUT

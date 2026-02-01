@@ -52,24 +52,70 @@ VAR
 	nExponent		: INT;
 	fFloat			: REAL;
 	nSign			: INT;
+	
+	
+	
+	Wertebereich	: WORD;
+	isPositiv		: INT;
+	MAXValue		: REAL;
+	Value			: INT;
+	nResult			: WORD;
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[nSign 			:= BIT_TO_INT(stInData[LOWER_BOUND(stInData,1)].7);
-nMantissa 		:= SHL(BYTE_TO_WORD(stInData[LOWER_BOUND(stInData,1)]) AND 16#07, 8);
-nMantissa 		:= nMantissa OR BYTE_TO_WORD(stInData[LOWER_BOUND(stInData,1) + 1]);
-nSignMantissa 	:= WORD_TO_INT(nMantissa);
-IF nSign = 1 THEN
-	// negative value
-	nMantissa := NOT nMantissa;
-	nMantissa := nMantissa OR (NOT 16#F800);
-	nSignMantissa := WORD_TO_INT(nMantissa + 1);
-	nSignMantissa := nSignMantissa * -1;
-END_IF
-nExponent := BYTE_TO_INT(stInData[LOWER_BOUND(stInData,1)] AND 16#78);
-M_InterpretAsFloat16 := LREAL_TO_REAL(0.01 * nSignMantissa * EXPT(2, nExponent));
+        <ST><![CDATA[//nSign 			:= BIT_TO_INT(stInData[LOWER_BOUND(stInData,1)].7);
+//nMantissa 		:= SHL(BYTE_TO_WORD(stInData[LOWER_BOUND(stInData,1)]) AND 16#07, 8);
+//nMantissa 		:= nMantissa OR BYTE_TO_WORD(stInData[LOWER_BOUND(stInData,1) + 1]);
+//nSignMantissa 	:= WORD_TO_INT(nMantissa);
+//IF nSign = 1 THEN
+//	// negative value
+//	nMantissa := NOT nMantissa;
+//	nMantissa := nMantissa OR (NOT 16#F800);
+//	nSignMantissa := WORD_TO_INT(nMantissa + 1);
+//	nSignMantissa := nSignMantissa * -1;
+//END_IF
+//nExponent := BYTE_TO_INT(stInData[LOWER_BOUND(stInData,1)] AND 16#78);
+//M_InterpretAsFloat16 := LREAL_TO_REAL(0.01 * nSignMantissa * EXPT(2, nExponent));
 
+
+nResult := SHL(BYTE_TO_WORD(stInData[LOWER_BOUND(stInData,1)]), 8);
+nResult := nResult OR BYTE_TO_WORD(stInData[LOWER_BOUND(stInData,1)+1]);
+
+
+	IF nResult/2048<16 THEN
+		isPositiv:=1;
+		Wertebereich:=nResult/2048;
+	ELSE
+		isPositiv:=-1;
+		Wertebereich:=(nResult/2048)-16;
+	END_IF
+	MAXValue:=LREAL_TO_REAL(EXPT(2,wertebereich)*20.48);
+	
+	Value:=UINT_TO_INT(nResult MOD 2048);
+	IF isPositiv<0 THEN
+		Value := 2048-Value;
+	END_IF
+	M_InterpretAsFloat16:=(INT_TO_REAL(Value)/2048)*MAXValue*isPositiv;
 ]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_InterpretAsFloat32" Id="{e202703b-6f0f-4117-b799-0f532539a7b8}">
+      <Declaration><![CDATA[METHOD M_InterpretAsFloat32 : Real
+VAR_INPUT
+	stInData		: ARRAY[*] OF BYTE;
+END_VAR
+VAR
+	Temp			: DWORD;
+	Temp2			: POINTER TO REAL;
+	i				: INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[FOR i := 0 TO 3 DO
+	Temp:=Temp + SHL(stInData[4-i],i*8);
+END_FOR
+
+temp2 := ADR(Temp);
+M_InterpretAsFloat32 := temp2^;]]></ST>
       </Implementation>
     </Method>
     <Method Name="M_InterpretAsINT16" Id="{0b31627f-6e0f-441c-bfc7-ded814e29f56}">
