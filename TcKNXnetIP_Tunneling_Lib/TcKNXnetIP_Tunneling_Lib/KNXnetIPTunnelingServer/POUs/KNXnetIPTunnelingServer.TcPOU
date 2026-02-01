@@ -355,16 +355,11 @@ nWord := F_KNX_GROUPADDRESS_TO_WORD(stInGroupAddress);
 stResult.aMessage[17]	:= M_GetHighByte(nWord);
 stResult.aMessage[18]	:= M_GetLowByte(nWord);
 	// Length, number of NPDU octets, TPCI octet not included!
-IF stInMessage.nByteLength <= 1 THEN
-	stResult.aMessage[19]	:= UDINT_TO_BYTE(stInMessage.nByteLength);
-	nTotalLength			:= nTotalLength - 1;
-ELSE
-	stResult.aMessage[19]	:= UDINT_TO_BYTE(stInMessage.nByteLength + 1);
-END_IF
+stResult.aMessage[19]	:= UDINT_TO_BYTE(stInMessage.nByteLength+1);
 	// TPCI/APCI
 stResult.aMessage[20]	:= 16#00;
 stResult.aMessage[21]	:= 16#80;	// GroupValueWrite
-IF stInMessage.nByteLength <= 1 THEN
+IF stInMessage.nByteLength = 0 THEN
 	stResult.aMessage[21]	:= stResult.aMessage[21] OR stInMessage.aMessage[1];
 ELSE
 	FOR i := 1 TO UDINT_TO_BYTE(stInMessage.nByteLength) DO
@@ -1861,7 +1856,7 @@ END_VAR
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="KNXnetIPTunnelingServer.M_BuildTunnellingRequest">
-      <LineId Id="3" Count="58" />
+      <LineId Id="62" Count="53" />
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="KNXnetIPTunnelingServer.M_Connect">

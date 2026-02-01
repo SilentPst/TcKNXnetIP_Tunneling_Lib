@@ -18,7 +18,7 @@ VAR_INPUT
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[M_Build2Bit.nByteLength := SIZEOF(BYTE);
+        <ST><![CDATA[M_Build2Bit.nByteLength := 0 ;//SIZEOF(BYTE);
 M_Build2Bit.aMessage[1].0 := bInValueBit1;
 M_Build2Bit.aMessage[1].1 := bInValueBit2;]]></ST>
       </Implementation>
@@ -30,7 +30,7 @@ VAR_INPUT
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[M_BuildBool.nByteLength := SIZEOF(BOOL);
+        <ST><![CDATA[M_BuildBool.nByteLength := 0;//SIZEOF(BOOL);
 M_BuildBool.aMessage[1] := BOOL_TO_BYTE(bInValue);]]></ST>
       </Implementation>
     </Method>
