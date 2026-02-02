@@ -54,7 +54,7 @@ END_VAR
     <Method Name="M_BuildString" Id="{b080c02a-74ba-4ea3-acc5-be93552f3818}">
       <Declaration><![CDATA[METHOD M_BuildString : ST_KNXnetIP_Message
 VAR_INPUT
-	nInValue	: STRING;
+	sInValue	: STRING;
 END_VAR
 ]]></Declaration>
     </Method>

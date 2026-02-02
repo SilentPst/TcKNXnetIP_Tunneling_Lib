@@ -132,18 +132,18 @@ M_BuildINT32.aMessage[4] := DWORD_TO_BYTE(nWord);]]></ST>
     <Method Name="M_BuildString" Id="{13fbf79e-382a-42d0-a1f5-a404e60c77e3}">
       <Declaration><![CDATA[METHOD M_BuildString : ST_KNXnetIP_Message
 VAR_INPUT
-	nInValue	: STRING;
+	sInValue	: STRING;
 END_VAR
 VAR
 	i 			: INT := 0;
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[M_BuildString.nByteLength := LIMIT(0,SIZEOF(nInValue),14);
+        <ST><![CDATA[M_BuildString.nByteLength := LIMIT(0,SIZEOF(sInValue),14);
 
 FOR i:=1 TO 15 BY 1 DO
-	IF nInValue[i-1] >= 32 AND nInValue[i-1] <= 122 THEN
-		M_BuildString.aMessage[i] := nInValue[i-1];
+	IF sInValue[i-1] >= 32 AND sInValue[i-1] <= 122 THEN
+		M_BuildString.aMessage[i] := sInValue[i-1];
 	ELSE
 		M_BuildString.aMessage[i] := 0;
 	END_IF
