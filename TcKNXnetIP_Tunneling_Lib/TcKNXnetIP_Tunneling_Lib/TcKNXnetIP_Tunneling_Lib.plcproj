@@ -9,7 +9,7 @@
     <WriteProductVersion>false</WriteProductVersion>
     <GenerateTpy>false</GenerateTpy>
     <Name>TcKNXnetIP_Tunneling_Lib</Name>
-    <ProgramVersion>3.1.4026.19</ProgramVersion>
+    <ProgramVersion>3.1.4026.20</ProgramVersion>
     <Application>{8a6aa856-be00-41ce-ac3c-17a2b6529ace}</Application>
     <TypeSystem>{d5f8170d-e343-43f3-9acc-f43caa52c492}</TypeSystem>
     <Implicit_Task_Info>{ad323f36-f317-4408-b3a4-8c9cbb734b7d}</Implicit_Task_Info>
@@ -17,7 +17,7 @@
     <Implicit_Jitter_Distribution>{b1568fd3-82ca-437f-aeda-95cad9461ace}</Implicit_Jitter_Distribution>
     <LibraryReferences>{b1a46f2d-2f37-46ba-a676-50a7eadc6920}</LibraryReferences>
     <Company>Gauggel</Company>
-    <Released>true</Released>
+    <Released>false</Released>
     <Title>TcKNXnetIP_Tunneling_Lib</Title>
     <ProjectVersion>1.0.0</ProjectVersion>
     <AllowChecksForLibrary>true</AllowChecksForLibrary>
@@ -250,6 +250,12 @@ The author shall not be held liable for any damages arising from the use of this
           <d n="SubKeys" t="Hashtable" />
           <d n="Values" t="Hashtable" />
         </o>
+        <v>{246001F4-279D-43AC-B241-948EB31120E1}</v>
+        <o>
+          <v n="Name">"{246001F4-279D-43AC-B241-948EB31120E1}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" />
+        </o>
         <v>{29BD8D0C-3586-4548-BB48-497B9A01693F}</v>
         <o>
           <v n="Name">"{29BD8D0C-3586-4548-BB48-497B9A01693F}"</v>
@@ -292,6 +298,12 @@ The author shall not be held liable for any damages arising from the use of this
             <v>DisabledWarningIds</v>
             <v>228,410,5410</v>
           </d>
+        </o>
+        <v>{eeeeeeee-3909-4298-8022-501ac3238667}</v>
+        <o>
+          <v n="Name">"{eeeeeeee-3909-4298-8022-501ac3238667}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" />
         </o>
         <v>{F66C7017-BDD8-4114-926C-81D6D687E35F}</v>
         <o>

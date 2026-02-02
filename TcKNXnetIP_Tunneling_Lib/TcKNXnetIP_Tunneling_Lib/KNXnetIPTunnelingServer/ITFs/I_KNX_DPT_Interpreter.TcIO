@@ -70,7 +70,7 @@ END_VAR]]></Declaration>
     <Method Name="M_InterpretNewMessage" Id="{0bed79c4-83e7-459c-8517-2c6a14e1e1b8}">
       <Declaration><![CDATA[METHOD M_InterpretNewMessage : BOOL
 VAR_INPUT
-	stInData		: BOOL;
+	bInData		: BOOL;
 END_VAR
 ]]></Declaration>
     </Method>

@@ -69,9 +69,9 @@ VAR_INPUT
 END_VAR
 
 VAR
-	Value: WORD;
-	wertebereich: WORD;
-	isPositiv: INT;
+	nValue		: WORD;
+	nExponent	: WORD;
+	isPositiv	: INT;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[M_BuildFloat16.nByteLength := SIZEOF(WORD);
@@ -82,18 +82,18 @@ ELSE
 END_IF
 
 IF ABS(fInValue) > 20.48 THEN
-	Wertebereich := DINT_TO_WORD(TRUNC((LOG(25*(fInValue*isPositiv))/LOG(2))-9)+1);
+	nExponent := DINT_TO_WORD(TRUNC((LOG(25*(fInValue*isPositiv))/LOG(2))-9)+1);
 ELSE
-	Wertebereich := 0;
+	nExponent := 0;
 END_IF
 IF isPositiv<0THEN
-	Wertebereich:=Wertebereich+16;
+	nExponent:=nExponent+16;
 END_IF
 
-Value:=REAL_TO_WORD(ABS(fInValue)/LREAL_TO_REAL(EXPT(2,Wertebereich))*100) + wertebereich*2048;
+nValue:=REAL_TO_WORD(ABS(fInValue)/LREAL_TO_REAL(EXPT(2,nExponent))*100) + nExponent*2048;
 
-M_BuildFloat16.aMessage[1] := WORD_TO_BYTE(SHR(Value,8));
-M_BuildFloat16.aMessage[2] := WORD_TO_BYTE(Value);]]></ST>
+M_BuildFloat16.aMessage[1] := WORD_TO_BYTE(SHR(nValue,8));
+M_BuildFloat16.aMessage[2] := WORD_TO_BYTE(nValue);]]></ST>
       </Implementation>
     </Method>
     <Method Name="M_BuildINT16" Id="{665b125b-14d4-4c4d-85fc-cef7579b9115}">
@@ -136,7 +136,6 @@ VAR_INPUT
 END_VAR
 VAR
 	i 			: INT := 0;
-	j			: INT := 14;
 END_VAR
 ]]></Declaration>
       <Implementation>
